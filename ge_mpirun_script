@@ -1,0 +1,62 @@
+#!/bin/bash
+# ge_mpirun_script (C) 2002 Wolfgang Tichy
+# needed for submitjob 
+
+# Replace some parts of $MPIRUN and $MPIBOOT with the local env vars here:
+#replace string $PE_HOSTFILE with content of env var $PE_HOSTFILE
+MPIBOOT=${MPIBOOT/\$PE_HOSTFILE/$PE_HOSTFILE}
+MPIRUN=${MPIRUN/\$PE_HOSTFILE/$PE_HOSTFILE}
+MPIHALT=${MPIHALT/\$PE_HOSTFILE/$PE_HOSTFILE}
+
+# tell me what's happening:
+echo "======================================================================"
+echo $submitjob
+echo "----------------------------------------------------------------------"
+echo "nodes = $nodes"
+echo "ppn = $ppn"
+echo "procs = $procs"
+echo "memory = $memory"
+echo "walltime = $walltime"
+echo "queue = $queue"
+echo "jobname = $jobname"
+echo "command = $command"
+echo "parfile = $parfile"
+echo
+echo "MPIBOOT = $MPIBOOT"
+echo "MPIRUN = $MPIRUN"
+echo "MPIHALT = $MPIHALT"
+echo
+echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
+echo The master node of this job is `hostname`
+#echo The working directory is `echo $GE_O_WORKDIR`
+echo The parallel environment is $PE
+echo The node file is $PE_HOSTFILE
+echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
+echo This job runs on the following nodes:
+echo `cat $PE_HOSTFILE`
+echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
+
+## make GE go to current dir
+#echo going to $GE_O_WORKDIR
+#cd $GE_O_WORKDIR
+
+echo
+echo "Job started on `hostname` at `date`"
+echo "======================================================================"
+
+if [ -n "${MPIBOOT}" ] 
+then
+  $MPIBOOT
+fi
+
+time $MPIRUN 
+
+if [ -n "${MPIHALT}" ] 
+then
+  $MPIHALT
+fi
+
+echo "======================================================================"
+echo "Job Ended at `date`"
+echo

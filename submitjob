@@ -1,0 +1,1458 @@
+#!/bin/bash
+
+echo "submitjob (C) 2002 Wolfgang Tichy"
+#export submitjob="submitjob $*"
+#export submitjob="submitjob \"$@\""
+submitjob="submitjob "
+for ARG in "$@"; do
+  if [ -z "${ARG}" ] || [[ ${ARG} =~ \  ]]
+  then
+    submitjob="$submitjob \"$ARG\""
+  else
+    submitjob="$submitjob $ARG"
+  fi
+done
+export submitjob
+export MPIBOOT=""
+export MPIHALT=""
+export OMP_NUM_THREADS=""
+
+export hostname=`hostname -d`
+
+#################
+# for manifold: #
+#################
+if [ $HOSTNAME = manifold ]
+then
+
+ echo "USAGE: submitjob nodes ppn walltime compiler jobname command [parfile]"
+ echo "                                    compiler = lahey, gcc or intel"
+ echo
+
+ export nodes=$1
+ export ppn=$2
+ export walltime=$3
+ export compiler=$4
+ export queue=default
+ export jobname=$5
+ export command=$6
+ export parfile=$7
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ export MPIRUN="mmpirun.$compiler $command $parfile"
+
+ echo "HOSTNAME = manifold"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "walltime = $walltime"
+ echo "compiler = $compiler"
+ echo "queue = $queue"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ echo
+ echo "calling qsub"
+ qsub -l walltime=$walltime,nodes=$nodes:ppn=$ppn \
+      -N $jobname \
+      -q $queue \
+      -j oe \
+      -v submitjob,nodes,ppn,walltime,queue,jobname,command,parfile,MPIRUN \
+      ~/bin/pbs_mpirun_script
+
+# End of: $HOSTNAME = manifold
+
+
+#################
+# for lemieux:  #
+#################
+elif [ $HOSTNAME = iam764  -o  $HOSTNAME = iam763 ]
+then
+
+ echo "USAGE: submitjob nodes ppn walltime queue jobname command [parfile]"
+ echo "                                    queue = debug or batch"
+ echo
+
+ export nodes=$1
+ export ppn=$2
+ export walltime=$3
+ export queue=$4
+ export jobname=$5
+ export command=$6
+ export parfile=$7
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export MPIRUN="prun -N $nodes -n $procs -s $command $parfile"
+
+ echo "HOSTNAME = $HOSTNAME , i.e. lemieux"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ let procs=nodes*ppn
+ echo
+ echo "calling qsub"
+ qsub -l walltime=$walltime,rmsnodes=$nodes:$procs \
+      -N $jobname \
+      -q $queue \
+      -j oe \
+      -v submitjob,nodes,ppn,walltime,queue,jobname,command,parfile,MPIRUN \
+      ~/bin/pbs_mpirun_script
+
+# End of lemieux
+
+
+#################
+# for MERCURY:  #
+#################
+elif [ $HOSTNAME = tg-login1.ncsa.teragrid.org -o $HOSTNAME = tg-login2.ncsa.teragrid.org -o $HOSTNAME = tg-login3.ncsa.teragrid.org -o $HOSTNAME = mercury ]
+then
+
+ echo "USAGE: submitjob nodes ppn walltime queue account jobname command [parfile]"
+ echo "                        |           queue=debug,dque,big,long,gpfs-wan,quake"
+ echo "                       ppn=2,2:fastcpu,2:himem,2:fastio"
+
+ export nodes=$1
+ export ppn=$2
+ export walltime=$3
+ export queue=$4
+ export account=$5
+ export jobname=$6
+ export command=$7
+ export parfile=$8
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ procpernode=`echo $ppn | cut -d':' -f1`
+ let procs=nodes*procpernode
+ export MPIRUN="mpirun -machinefile \$PBS_NODEFILE -np $procs $command $parfile"
+
+ echo "HOSTNAME = $HOSTNAME , i.e. MERCURY"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "account = $account"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ QSUB=" qsub -l walltime=$walltime,nodes=$nodes:ppn=$ppn \
+             -N $jobname \
+             -q $queue \
+             -A $account
+             -j oe \
+             -v submitjob,nodes,ppn,walltime,queue,account,jobname,command,parfile,MPIRUN \
+             $HOME/bin/pbs_mpirun_script"
+ echo
+ echo "calling qsub:"
+ echo $QSUB
+ $QSUB
+
+# End of MERCURY
+
+
+########################################
+# for BOCA5_lsf, i.e. BOCA5 using lsf: #
+########################################
+elif [ $HOSTNAME = boca5_lsf ]
+then
+
+ echo "USAGE: submitjob nodes ppn walltime queue jobname command [parfile]"
+ echo "                                    queue=normal"
+
+ export nodes=$1
+ export ppn=$2
+ export walltime=$3
+ export queue=$4
+ export jobname=$5
+ export command=$6
+ export parfile=$7
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export MPIRUN="mpirun -np $procs $command $parfile"
+
+ echo "HOSTNAME = $HOSTNAME"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+# try -R "span[ptile=$ppn]"
+ BSUB=" bsub -n $procs \
+             -R "span[ptile=$ppn]" \
+             -W $walltime \
+             -J $jobname \
+             -q $queue \
+             -o \
+             < $HOME/bin/lsf_mpirun_script"
+ echo
+ echo "calling bsub:"
+ echo $BSUB
+ $BSUB
+
+# End of BOCA5_lsf
+
+
+###############
+# for BOCA5:  #
+###############
+elif [ $HOSTNAME = boca5.science.fau.edu ]
+then
+
+ echo "USAGE: submitjob nodes ppn walltime queue jobname command [parfile]"
+ echo "                   |                queue=default"
+ echo "                 nodes=1,2,3,...,single     (single is without MPI)"
+
+ export nodes=$1
+ export ppn=$2
+ export walltime=$3
+ export queue=$4
+ export jobname=$5
+ export command=$6
+ export parfile=$7
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export MPIRUN="/opt/lam/intel/bin/mpirun -np $procs $command $parfile"
+ # export MPIBOOT="/opt/lam/intel/bin/lamboot -ssi boot tm"
+ # export MPIBOOT="/opt/lam/intel/bin/lamboot"
+ export MPIBOOT="/opt/lam/intel/bin/lamboot \$PBS_NODEFILE"
+ export MPIHALT="/opt/lam/intel/bin/lamhalt"
+ # if nodes is single we just call the prog without MPI stuff
+ if [ "$nodes" = single ]
+ then
+   let procs=ppn
+   export MPIRUN="$command $parfile"
+   export MPIBOOT=""
+   export MPIHALT=""
+   export nodes="1"
+   # compute OMP_NUM_THREADS for OpenMP
+   let OMP_NUM_THREADS=4/ppn
+   export OMP_NUM_THREADS
+ fi
+
+ echo "HOSTNAME = $HOSTNAME"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIBOOT = $MPIBOOT"
+ echo "MPIRUN = $MPIRUN"
+ echo "MPIHALT = $MPIHALT"
+
+# QSUB=" qsub -l walltime=$walltime,nodes=$nodes:ppn=$ppn \
+ QSUB=" qsub -l walltime=$walltime,nodes=$nodes \
+             -N $jobname \
+             -q $queue \
+             -j oe \
+             -v submitjob,nodes,ppn,walltime,queue,jobname,command,parfile,MPIRUN,MPIBOOT,MPIHALT,OMP_NUM_THREADS \
+             $HOME/bin/pbs_mpirun_script"
+ echo
+ echo "calling qsub:"
+ echo $QSUB
+ $QSUB
+
+# End of BOCA5
+
+
+###############
+# for BOCA4:  #
+###############
+elif [ $HOSTNAME = master ]
+then
+
+ echo "USAGE: submitjob nodes ppn walltime queue jobname command [parfile]"
+ echo "                                    queue=workq"
+
+ export nodes=$1
+ export ppn=$2
+ export walltime=$3
+ export queue=$4
+ export jobname=$5
+ export command=$6
+ export parfile=$7
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export MPIRUN="/opt/lam-6.5.7/bin/mpirun -np $procs $command $parfile"
+ export MPIBOOT="/opt/lam-6.5.7/bin/lamboot \$PBS_NODEFILE"
+ export MPIHALT="/opt/lam-6.5.7/bin/lamhalt"
+
+ echo "HOSTNAME = $HOSTNAME , i.e. boca4"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIBOOT = $MPIBOOT"
+ echo "MPIRUN = $MPIRUN"
+ echo "MPIHALT = $MPIHALT"
+
+# QSUB=" qsub -l walltime=$walltime,nodes=$nodes:ppn=$ppn \
+ QSUB=" qsub -l walltime=$walltime,nodes=$nodes:ppn=$ppn \
+             -N $jobname \
+             -q $queue \
+             -j oe \
+             -v submitjob,nodes,ppn,walltime,queue,jobname,command,parfile,MPIRUN,MPIBOOT,MPIHALT \
+             $HOME/bin/pbs_mpirun_script"
+ echo
+ echo "calling qsub:"
+ echo $QSUB
+ $QSUB
+
+# End of BOCA4
+
+
+#################
+# for redwood:  #
+#################
+elif [ $HOSTNAME = redwood.mcsr.olemiss.edu ]
+then
+
+ echo "USAGE: submitjob procs memory walltime filesize jobname command [parfile]"
+ echo "                        |              filesize=50gb,... <-max size of any file"
+ echo "                       memory=3100mb,7gb,... <-max amount of virtual memory"
+ export procs=$1
+ export memory=$2
+ export walltime=$3
+ export filesize=$4
+ export jobname=$5
+ export command=$6
+ export parfile=$7
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ export MPIRUN="mpirun -np $procs $command $parfile"
+ export MPIBOOT=""
+ export MPIHALT=""
+
+ echo "HOSTNAME = $HOSTNAME"
+ echo "procs = $procs"
+ echo "memory = $memory"
+ echo "walltime = $walltime"
+ echo "filesize = $filesize"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIBOOT = $MPIBOOT"
+ echo "MPIRUN = $MPIRUN"
+ echo "MPIHALT = $MPIHALT"
+
+ QSUB=" qsub -l cput=$walltime,ncpus=$procs,mem=$memory,file=$filesize \
+             -N $jobname \
+             -j oe \
+             -v submitjob,procs,walltime,memory,filesize,jobname,command,parfile,MPIRUN,MPIBOOT,MPIHALT \
+             $HOME/bin/pbs_mpirun_script"
+ echo
+ echo "calling qsub:"
+ echo $QSUB
+ $QSUB
+
+# End of redwood
+
+
+###############
+# for RANGER: #
+###############
+elif [ $HOSTNAME = login4.ranger.tacc.utexas.edu -o $HOSTNAME = login3.ranger.tacc.utexas.edu ]
+then
+
+ echo "USAGE:"
+ echo "submitjob nodes ppn walltime queue njobs account jobname command [parfile]"
+ echo "                 |            |     |    account=TG-PHY090095"
+ echo "                 |            |    njobs=1,2,3,4,..."
+ echo "                 |           queue=normal,long"
+ echo "                ppn=1, 2, 4, 8, 12, 15, 16"
+
+ export nodes=$1
+ export ppn=$2
+ export memory=""
+ export walltime=$3
+ export queue=$4
+ export njobs=$5
+ export account=$6
+ export jobname=$7
+ export command=$8
+ export parfile=$9
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*16
+ export procs
+ export MPIRUN="ibrun $command $parfile"
+ ##export MPIBOOT="module unload mvapich2 ; module load mvapich-devel ; module list"
+ #module unload mvapich2
+ #module load mvapich-devel
+ module list
+
+ # compute OMP_NUM_THREADS for OpenMP
+ let OMP_NUM_THREADS=16/ppn
+ export OMP_NUM_THREADS
+
+ echo "HOSTNAME = $HOSTNAME , i.e. RANGER"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "njobs = $njobs"
+ echo "account = $account"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ LASTJOBID=ThereIsNoJobToDependOn
+ i=1
+ while [ $i -le $njobs ];
+ do
+   if [ $LASTJOBID = ThereIsNoJobToDependOn ];
+   then
+     QSUB=" qsub -l h_rt=$walltime -A $account \
+                 -pe ${ppn}way $procs \
+                 -N $jobname \
+                 -q $queue \
+                 -j y \
+                 -V \
+                 -cwd \
+                 $HOME/bin/ge_csh_mpirun_script"
+   else
+     QSUB=" qsub -l h_rt=$walltime -A $account \
+                 -pe ${ppn}way $procs \
+                 -N $jobname \
+                 -q $queue \
+                 -hold_jid $LASTJOBID
+                 -j y \
+                 -V \
+                 -cwd \
+                 $HOME/bin/ge_csh_mpirun_script"
+   fi
+   echo
+   echo "calling qsub:"
+   echo $QSUB
+   # execute qsub and save output also in $jobname.last-qsub
+   $QSUB | tee $jobname.last-qsub
+   LASTJOBID=`tail -n1 $jobname.last-qsub | cut -d " " -f 3`
+
+   let i=i+1
+ done    # end of while loop
+
+# End of RANGER
+
+
+###############
+# for KRAKEN: #
+###############
+elif [ `expr match $HOSTNAME kraken` == 6 ]
+then
+
+ echo "USAGE:"
+ echo "submitjob nodes ppn walltime queue njobs account jobname command [parfile]"
+ echo "                 |            |     |    account=TG-AST100021,TG-PHY100051"
+ echo "                 |            |    njobs=1,2,3,4,..."
+ echo "                ppn=12       queue=batch,debug,\"debug -I\""
+
+ export nodes=$1
+ export ppn=$2
+ export memory=""
+ export walltime=$3
+ export queue=$4
+ export njobs=$5
+ export account=$6
+ export jobname=$7
+ export command=$8
+ export parfile=$9
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let qsubsize=nodes*12
+ export qsubsize
+
+ let procs=nodes*ppn
+ export procs
+
+ # make ppn even
+ let ppn=ppn/2
+ let ppn=ppn*2
+ export ppn
+
+ # each node seems to have 2 numa nodes! Set proc per numa node:
+ let pp_numanode=ppn/2
+ export pp_numanode
+
+ # each node has 16GB = 16000MB, divide it equally among each proc per node
+ let mem_pproc=16000/ppn
+ export mem_pproc
+
+ # export MPIRUN="aprun -n $procs -N $ppn $command $parfile"
+ # export MPIRUN="aprun -n $procs -N $ppn -S $pp_numanode -m $mem_pproc $command $parfile"
+ export MPIRUN="aprun -n $procs -S $pp_numanode $command $parfile"
+ # About aprun options on Kraken:
+ # Note:  pes := processing elements,  NUMA := Non-Uniform Memory Access
+ # -n pes                 # number of pes needed for your application
+ # -N pes_per_node
+ # -S pes_per_numa_node   # each node seems to have 2 numa nodes!
+ # -m size[h|hs]          # per-PE required RSS memory in MB
+ # The following options are commonly used with aprun:
+ ## -d 	Specifies number of cores per MPI process (for use with OpenMP, XT5: 1–12)
+ ##export MPIBOOT="module unload mvapich2 ; module load mvapich-devel ; module list"
+ #module unload mvapich2
+ #module load mvapich-devel
+ #module list
+
+ ## compute OMP_NUM_THREADS for OpenMP
+ #let OMP_NUM_THREADS=16/ppn
+ #export OMP_NUM_THREADS
+
+ echo "HOSTNAME = $HOSTNAME , i.e. KRAKEN"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "qsubsize = $qsubsize"
+ echo "pp_numanode = $pp_numanode"
+ #echo "mem_pproc = $mem_pproc"
+ #echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "njobs = $njobs"
+ echo "account = $account"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ LASTJOBID=ThereIsNoJobToDependOn
+ i=1
+ while [ $i -le $njobs ];
+ do
+   if [ $LASTJOBID = ThereIsNoJobToDependOn ];
+   then
+     QSUB=" qsub -l walltime=$walltime,size=$qsubsize \
+                 -A $account \
+                 -N $jobname \
+                 -q $queue \
+                 -j oe \
+                 -v submitjob,nodes,ppn,walltime,queue,njobs,jobname,command,parfile,MPIRUN,MPIBOOT,MPIHALT \
+                 $HOME/bin/pbs_mpirun_script"
+   else
+     QSUB=" qsub -l walltime=$walltime,size=$qsubsize \
+                 -A $account \
+                 -N $jobname \
+                 -q $queue \
+                 -W depend=afterany:$LASTJOBID
+                 -j oe \
+                 -v submitjob,nodes,ppn,walltime,queue,njobs,jobname,command,parfile,MPIRUN,MPIBOOT,MPIHALT \
+                 $HOME/bin/pbs_mpirun_script"
+   fi
+   echo
+   echo "calling qsub:"
+   echo $QSUB
+   # execute qsub and save output also in $jobname.last-qsub
+   $QSUB | tee $jobname.last-qsub
+   LASTJOBID=`tail -n1 $jobname.last-qsub`
+
+   let i=i+1
+ done    # end of while loop
+
+# End of KRAKEN
+
+
+#################
+# for STAMPEDE: #
+#################
+elif [[ $HOSTNAME =~ stampede ]]
+then
+
+ echo "USAGE:"
+ echo "submitjob nodes ppn walltime queue njobs account jobname command [parfile]"
+ echo "                 |            |     |    account=TG-PHY140017"
+ echo "                 |            |    njobs=1,2,3,4,..."
+ echo "                ppn=16       queue=normal,development,largemem,..."
+
+ export nodes=$1
+ export ppn=$2
+ export memory=""
+ export walltime=$3
+ export queue=$4
+ export njobs=$5
+ export account=$6
+ export jobname=$7
+ export command=$8
+ export parfile=$9
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export procs
+
+ # compute OMP_NUM_THREADS for OpenMP
+ let OMP_NUM_THREADS=16/ppn
+ export OMP_NUM_THREADS
+
+ if [ $OMP_NUM_THREADS == 1 ]
+ then
+   export MPIRUN="ibrun $command $parfile"
+ else
+   ###export MPIRUN="ibrun tacc_affinity $command $parfile" ### WCP 12-01-2014
+   ###export MV2_ENABLE_AFFINITY=0 ### WCP 12-01-2014
+   ###export KMP_STACKSIZE=100m ### WCP 12-01-2014
+   export MPIRUN="ibrun $command $parfile" ### WCP 12-01-2014 Use with Intel MPI
+ fi
+
+ echo "HOSTNAME = $HOSTNAME , i.e. STAMPEDE"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "njobs = $njobs"
+ echo "account = $account"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ LASTJOBID=ThereIsNoJobToDependOn
+ i=1
+ while [ $i -le $njobs ];
+ do
+   if [ $LASTJOBID = ThereIsNoJobToDependOn ];
+   then
+     QSUB=" sbatch -t $walltime \
+                 -n $procs -N $nodes \
+                 -A $account \
+                 -J $jobname \
+                 -p $queue \
+                 -o $parfile.o%J \
+                 $HOME/bin/slurm_mpirun_script"
+   else
+     QSUB=" sbatch -t $walltime \
+                 -n $procs -N $nodes \
+                 -A $account \
+                 -J $jobname \
+                 -p $queue \
+                 -d afterany:$LASTJOBID
+                 -o $parfile.o%J \
+                 $HOME/bin/slurm_mpirun_script"
+   fi
+   echo
+   echo "calling sbatch:"
+   echo $QSUB
+   # execute qsub and save output also in $jobname.last-sbatch
+   $QSUB | tee $jobname.last-sbatch
+   LASTJOBID=`tail -n1 $jobname.last-sbatch | awk '{ print $NF }'`
+
+   let i=i+1
+ done    # end of while loop
+
+# End of STAMPEDE
+
+
+###############
+# for GORDON: #
+###############
+elif [[ $HOSTNAME =~ gordon ]]
+then
+
+ echo "USAGE:"
+ echo "submitjob nodes ppn walltime queue njobs account jobname command [parfile]"
+ echo "                 |            |     |    account=fau100"
+ echo "                 |            |    njobs=1,2,3,4,..."
+ echo "                ppn=16       queue=normal,vsmp"
+
+ export nodes=$1
+ export ppn=$2
+ # export memory=""
+ export walltime=$3
+ export queue=$4
+ export njobs=$5
+ export account=$6
+ export jobname=$7
+ export command=$8
+ export parfile=$9
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export procs
+
+ # compute OMP_NUM_THREADS for OpenMP
+ let OMP_NUM_THREADS=16/ppn
+ export OMP_NUM_THREADS
+
+ if [ $OMP_NUM_THREADS == 1 ]
+ then
+   export MPIRUN="mpirun_rsh -np $procs -hostfile \$PBS_NODEFILE $command $parfile"
+ else
+   export MPIRUN="mpirun_rsh -np $procs -hostfile \$PBS_NODEFILE OMP_NUMTHREADS=$OMP_NUM_THREADS $command $parfile"
+ fi
+
+ echo "HOSTNAME = $HOSTNAME , i.e. GORDON"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "njobs = $njobs"
+ echo "account = $account"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ LASTJOBID=ThereIsNoJobToDependOn
+ i=1
+ while [ $i -le $njobs ];
+ do
+   if [ $LASTJOBID = ThereIsNoJobToDependOn ];
+   then
+     QSUB=" qsub -l walltime=$walltime \
+                 -l nodes=$nodes:ppn=$ppn:native
+                 -A $account \
+                 -N $jobname \
+                 -q $queue \
+                 -j oe \
+                 -V \
+                 $HOME/bin/pbs_mpirun_script"
+   else
+     QSUB=" qsub -l walltime=$walltime \
+                 -l nodes=$nodes:ppn=$ppn:native
+                 -A $account \
+                 -N $jobname \
+                 -q $queue \
+                 -W depend=afterany:$LASTJOBID
+                 -j oe \
+                 -V \
+                 $HOME/bin/pbs_mpirun_script"
+   fi
+   echo
+   echo "calling qsub:"
+   echo $QSUB
+   # execute qsub and save output also in $jobname.last-qsub
+   $QSUB | tee $jobname.last-qsub
+   LASTJOBID=`tail -n1 $jobname.last-qsub`
+
+   let i=i+1
+ done    # end of while loop
+
+# End of GORDON
+
+
+#############
+# for KOKO: #
+#############
+elif [[ $HOSTNAME =~ koko-login ]]
+then
+
+ echo "USAGE:"
+ echo "submitjob nodes ppn walltime queue constraint njobs jobname command [parfile]"
+ echo "           |    ppn=20,64,... |     |         njobs=1,2,3,...:DependOnID"
+ echo "           |                  |    constraint=\"\",\"intel\",\"epyc\",\"haswell\",..."
+ echo "       nodes=1,2,..;serial   queue=longq7,shortq7,micHost,mic,..."
+
+ export mode=$1
+ export nodes=$1
+ if [ $mode = serial ]
+ then
+   export nodes=1
+ fi
+ export ppn=$2
+ export memory=""
+ export walltime=$3
+ export queue=$4
+ export constraint=$5
+ export njobs=`echo $6 | awk --field-separator ':' '{ print $1 }'`
+ export DependOnID=`echo $6 | awk --field-separator ':' '{ print $2 }'`
+ # export account=$6
+ export account="dummyaccount"
+ export jobname=$7
+ export command=$8
+ export parfile=$9
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export procs
+
+ # set tpn=threads/node
+ if [ C$constraint = Cepyc ]
+ then
+   tpn=64
+ else
+   tpn=20
+ fi
+
+ # for all the new constraints
+ if [ C$constraint = Cepyc7702 ]
+ then
+   tpn=256
+ fi
+ if [ C$constraint = Cepyc7551 ]
+ then
+   tpn=64
+ fi
+ # there should be more constraints...
+
+ # compute OMP_NUM_THREADS for OpenMP
+ let OMP_NUM_THREADS=tpn/ppn
+ export OMP_NUM_THREADS
+
+ if [ $mode = serial ]
+ then
+   export MPIRUN="$command $parfile"
+ else
+   # export MPIRUN="mpirun -np $procs $command $parfile"
+   export MPIRUN="prun $command $parfile"
+ fi
+
+ # these two can be used to have more MPI tags with Intel's MPI
+ # sum of TAG_BITS and RANK_BITS has to be 39, e.g. 30+9:
+ export MPIR_CVAR_CH4_OFI_TAG_BITS
+ export MPIR_CVAR_CH4_OFI_RANK_BITS
+
+ echo "HOSTNAME = $HOSTNAME , i.e. KOKO"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "constraint = $constraint"
+ echo "njobs = $njobs"
+ echo "account = $account"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ if [ -z "${DependOnID}" ]
+ then
+   LASTJOBID=ThereIsNoJobToDependOn
+ else
+   LASTJOBID=$DependOnID
+ fi
+ i=1
+ while [ $i -le $njobs ];
+ do
+   QSUB="sbatch -t $walltime \
+                --nodes=$nodes --exclusive \
+                --ntasks=$procs \
+                --cpus-per-task=$OMP_NUM_THREADS \
+                --mem=0 \
+                -A $account \
+                -J $jobname \
+                -p $queue \
+                -o $parfile.o%J"
+   if [ $LASTJOBID = ThereIsNoJobToDependOn ];
+   then
+     QSUB2=""
+   else
+     QSUB2="      -d afterany:$LASTJOBID"
+   fi
+   QSUB="$QSUB$QSUB2"
+
+   if [ -z "${constraint}" ]
+   then
+     QSUB2=""
+   else
+     QSUB2="      -C $constraint"
+   fi
+   QSUB="$QSUB$QSUB2"
+
+   QSUB="$QSUB \
+         $HOME/bin/slurm_mpirun_script"
+   echo
+   echo "calling sbatch:"
+   echo $QSUB
+   # execute qsub and save output also in $jobname.last-sbatch
+   $QSUB | tee $jobname.last-sbatch
+   LASTJOBID=`tail -n1 $jobname.last-sbatch | awk '{ print $NF }'`
+
+   let i=i+1
+ done    # end of while loop
+
+# End of KOKO
+
+
+##############
+# for FERMI: #
+##############
+elif [[ $HOSTNAME =~ fen0 ]]
+then
+
+ echo "USAGE:"
+ echo "submitjob nodes ppn walltime queue njobs jobname command [parfile]"
+ echo "           |     |            |     |    "
+ echo "           |    ppn=16        |    njobs=1,2,3,4,..."
+ echo "        nodes=1,2,..,serial   queue=any"
+
+ export mode=$1
+ export nodes=$1
+ if [ $mode = serial ]
+ then
+   export nodes=1
+ fi
+ export ppn=$2
+ export memory=""
+ export walltime=$3
+ export queue=$4
+ export njobs=$5
+ export account="IscrC_GWBNS"
+ export jobname=$6
+ export command=$7
+ export parfile=$8
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export procs
+
+ # compute OMP_NUM_THREADS for OpenMP
+ let OMP_NUM_THREADS=16/ppn
+ export OMP_NUM_THREADS
+
+ if [ $mode = serial ]
+ then
+   export MPIRUN="runjob --np $ppn --ranks-per-node $ppn --envs OMP_NUM_THREADS=$OMP_NUM_THREADS : $command $parfile"
+ else
+   export MPIRUN="runjob --ranks-per-node $ppn --envs OMP_NUM_THREADS=$OMP_NUM_THREADS : $command $parfile"
+ fi
+
+ echo "HOSTNAME = $HOSTNAME , i.e. FERMI"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "njobs = $njobs"
+ echo "account = $account"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ QSUB="$HOME/bin/ll_mpirun_script"
+ echo
+ echo "running:"
+ echo $QSUB
+ # execute qsub and save output also in $jobname.last-llsubmit
+ $QSUB | tee $jobname.last-llsubmit
+
+# End of FERMI
+
+
+################
+# for MARCONI: #
+################
+elif [[ $hostname =~ 'marconi.cineca.it' ]]
+then
+
+ echo "USAGE:"
+ echo "submitjob nodes ppn walltime queue njobs account jobname command [parfile]"
+ echo "                 |            |     |    account=INF17_teongrav_1,IscrC_BNSpin1"
+ echo "                 |            |    njobs=1,2,3,4,..."
+ echo "                ppn=68,36    queue=knlroute,route,serial,special"
+
+ export nodes=$1
+ export ppn=$2
+ # export memory=""
+ export walltime=$3
+ export queue=$4
+ export njobs=$5
+ export account=$6
+ export jobname=$7
+ export command=$8
+ export parfile=$9
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export procs
+
+ # set number of cores and node configuration
+ ncores=68
+ node_conf=select=$nodes:ncpus=$ncores:mpiprocs=$ppn:mem=93GB:mcdram=cache:numa=quadrant
+ if [ -z "${ENV_KNL_HOME}" ]
+ then
+   # conf if we do not use KNL:
+   ncores=36
+   node_conf=select=$nodes:ncpus=$ncores:mpiprocs=$ppn:mem=123GB
+ fi
+ export ncores
+ export node_conf
+
+ # compute OMP_NUM_THREADS for OpenMP
+ let OMP_NUM_THREADS=ncores/ppn
+ export OMP_NUM_THREADS
+
+ export MPIRUN="mpirun -n $procs $command $parfile"
+
+ echo "HOSTNAME = $HOSTNAME , i.e. MARCONI"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "ncores = $ncores"
+ echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "njobs = $njobs"
+ echo "account = $account"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ LASTJOBID=ThereIsNoJobToDependOn
+ i=1
+ while [ $i -le $njobs ];
+ do
+   if [ $LASTJOBID = ThereIsNoJobToDependOn ];
+   then
+     QSUB=" qsub -l walltime=$walltime \
+                 -l $node_conf \
+                 -A $account \
+                 -N $jobname \
+                 -q $queue \
+                 -j oe \
+                 -V \
+                 $HOME/bin/pbs_mpirun_script"
+   else
+     QSUB=" qsub -l walltime=$walltime \
+                 -l $node_conf \
+                 -A $account \
+                 -N $jobname \
+                 -q $queue \
+                 -W depend=afterany:$LASTJOBID
+                 -j oe \
+                 -V \
+                 $HOME/bin/pbs_mpirun_script"
+   fi
+   echo
+   echo "calling qsub:"
+   echo $QSUB
+   # execute qsub and save output also in $jobname.last-qsub
+   $QSUB | tee $jobname.last-qsub
+   LASTJOBID=`tail -n1 $jobname.last-qsub`
+
+   let i=i+1
+ done    # end of while loop
+
+# End of MARCONI
+
+
+##############
+# for COMET: #
+##############
+elif [[ $HOSTNAME =~ comet ]]
+then
+
+ echo "USAGE:"
+ echo "submitjob nodes ppn walltime queue njobs account jobname command [parfile]"
+ echo "                 |            |     |    account=fau102"
+ echo "                 |            |    njobs=1,2,3,4,..."
+ echo "                ppn=24       queue=compute,debug"
+
+ export nodes=$1
+ export ppn=$2
+ export memory=""
+ export walltime=$3
+ export queue=$4
+ export njobs=$5
+ export account=$6
+ export jobname=$7
+ export command=$8
+ export parfile=$9
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export procs
+
+ # compute OMP_NUM_THREADS for OpenMP
+ let OMP_NUM_THREADS=24/ppn
+ export OMP_NUM_THREADS
+
+ # for mvapich2_ib
+ # export MPIRUN="ibrun --npernode $ppn $command $parfile"
+ # for intelmpi
+ export MPIRUN="mpirun $command $parfile"
+
+ echo "HOSTNAME = $HOSTNAME , i.e. COMET"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "njobs = $njobs"
+ echo "account = $account"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ LASTJOBID=ThereIsNoJobToDependOn
+ i=1
+ while [ $i -le $njobs ];
+ do
+   if [ $LASTJOBID = ThereIsNoJobToDependOn ];
+   then
+     QSUB=" sbatch -t $walltime \
+                 -N $nodes --ntasks-per-node=$ppn \
+                 --cpus-per-task=$OMP_NUM_THREADS \
+                 -A $account \
+                 -J $jobname \
+                 -p $queue \
+                 -o $parfile.o%J \
+                 --export=ALL \
+                 $HOME/bin/slurm_mpirun_script"
+   else
+     QSUB=" sbatch -t $walltime \
+                 -N $nodes --ntasks-per-node=$ppn \
+                 --cpus-per-task=$OMP_NUM_THREADS \
+                 -A $account \
+                 -J $jobname \
+                 -p $queue \
+                 -o $parfile.o%J \
+                 --export=ALL \
+                 -d afterany:$LASTJOBID \
+                 $HOME/bin/slurm_mpirun_script"
+   fi
+   echo
+   echo "calling sbatch:"
+   echo $QSUB
+   # execute qsub and save output also in $jobname.last-sbatch
+   $QSUB | tee $jobname.last-sbatch
+   LASTJOBID=`tail -n1 $jobname.last-sbatch | awk '{ print $NF }'`
+
+   let i=i+1
+ done    # end of while loop
+
+# End of COMET
+
+
+##################
+# for CARTESIUS: #
+##################
+elif [[ $HOSTNAME =~ .bullx ]]
+then
+
+ echo "USAGE:"
+ echo "submitjob nodes ppn walltime queue njobs jobname command [parfile]"
+ echo "          /      |           /      |    "
+ echo "         /      ppn=24,32   /      njobs=1,2,3,4,..."
+ echo "    nodes=1,2,...;serial  queue=normal,short,broadwell,broadwell_short,fat,..."
+ echo "                          cores/node: normal:24 broadwell*,fat:32"
+
+ export mode=$1
+ export nodes=$1
+ if [ $mode = serial ]
+ then
+   export nodes=1
+ fi
+ export ppn=$2
+ export memory=""
+ export walltime=$3
+ export queue=$4
+ export njobs=$5
+ export account=""
+ export jobname=$6
+ export command=$7
+ export parfile=$8
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export procs
+
+ # compute OMP_NUM_THREADS for OpenMP
+ if [[ $queue =~ broadwell ]]
+ then
+   let OMP_NUM_THREADS=32/ppn
+   export OMP_NUM_THREADS
+ else
+   let OMP_NUM_THREADS=24/ppn
+   export OMP_NUM_THREADS
+ fi
+
+ if [ $mode = serial ]
+ then
+   export MPIRUN="$command $parfile"
+ else
+   export MPIRUN="srun $command $parfile"
+ fi
+
+ echo "HOSTNAME = $HOSTNAME , i.e. CARTESIUS"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ echo "njobs = $njobs"
+ #echo "account = $account"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ LASTJOBID=ThereIsNoJobToDependOn
+ i=1
+ while [ $i -le $njobs ];
+ do
+   if [ $LASTJOBID = ThereIsNoJobToDependOn ];
+   then
+     QSUB=" sbatch -t $walltime \
+                 -N $nodes --ntasks-per-node=$ppn \
+                 --cpus-per-task=$OMP_NUM_THREADS \
+                 -J $jobname \
+                 -p $queue \
+                 -o $parfile.o%J \
+                 --export=ALL \
+                 $HOME/bin/slurm_mpirun_script"
+   else
+     QSUB=" sbatch -t $walltime \
+                 -N $nodes --ntasks-per-node=$ppn \
+                 --cpus-per-task=$OMP_NUM_THREADS \
+                 -J $jobname \
+                 -p $queue \
+                 -o $parfile.o%J \
+                 --export=ALL \
+                 -d afterany:$LASTJOBID \
+                 $HOME/bin/slurm_mpirun_script"
+   fi
+   echo
+   echo "calling sbatch:"
+   echo $QSUB
+   # execute qsub and save output also in $jobname.last-sbatch
+   $QSUB | tee $jobname.last-sbatch
+   LASTJOBID=`tail -n1 $jobname.last-sbatch | awk '{ print $NF }'`
+
+   let i=i+1
+ done    # end of while loop
+
+# End of CARTESIUS
+
+
+####################
+# for SuperMuc-NG: #
+####################
+elif [[ $HOSTNAME =~ login0 ]]
+then
+
+ echo "USAGE:"
+ echo "submitjob nodes ppn walltime queue njobs account jobname command [parfile]"
+ echo "           |     |            |     |    account=pn56zo"
+ echo "           |    ppn=48        |    njobs=1,2,3,4,..."
+ echo "       nodes=1,2,..;serial   queue=test,micro,general,large,fat"
+
+ export mode=$1
+ export nodes=$1
+ if [ $mode = serial ]
+ then
+   export nodes=1
+ fi
+ export ppn=$2
+ export memory=""
+ export walltime=$3
+ export queue=$4
+ export constraint=""
+ export njobs=$5
+ export account=$6
+ export jobname=$7
+ export command=$8
+ export parfile=$9
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export procs
+
+ # set tpn=threads/node
+ tpn=48
+
+ # compute OMP_NUM_THREADS for OpenMP
+ let OMP_NUM_THREADS=tpn/ppn
+ export OMP_NUM_THREADS
+
+ if [ $mode = serial ]
+ then
+   export MPIRUN="$command $parfile"
+ else
+   export MPIRUN="mpiexec -n $procs  $command $parfile"
+ fi
+
+ echo "HOSTNAME = $HOSTNAME , i.e. SUPERMUC-NG"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ #echo "constraint = $constraint"
+ echo "njobs = $njobs"
+ echo "account = $account"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ LASTJOBID=ThereIsNoJobToDependOn
+ i=1
+ while [ $i -le $njobs ];
+ do
+   QSUB="sbatch -t $walltime \
+                --nodes=$nodes --ntasks-per-node=$ppn \
+                --partition=$queue \
+                --get-user-env \
+                --account=$account \
+                -J $jobname \
+                -o $parfile.o%J"
+   if [ $LASTJOBID = ThereIsNoJobToDependOn ];
+   then
+     QSUB2=""
+   else
+     QSUB2="      -d afterany:$LASTJOBID"
+   fi
+   QSUB="$QSUB$QSUB2"
+
+   if [ -z "${constraint}" ]
+   then
+     QSUB2=""
+   else
+     QSUB2="      -C $constraint"
+   fi
+   QSUB="$QSUB$QSUB2"
+
+   QSUB="$QSUB \
+         $HOME/bin/slurm_mpirun_script"
+   echo
+   echo "calling sbatch:"
+   echo $QSUB
+   # execute qsub and save output also in $jobname.last-sbatch
+   $QSUB | tee $jobname.last-sbatch
+   LASTJOBID=`tail -n1 $jobname.last-sbatch | awk '{ print $NF }'`
+
+   let i=i+1
+ done    # end of while loop
+
+# End of SUPERMUC-NG
+
+
+#################
+# for xxxxxx :  #
+#################
+# put:  elif [ $HOSTNAME = xxxxxx ]
+#       then
+# End of: $HOSTNAME = xxxxxx
+
+
+#####################
+# for unknown host: #
+#####################
+else
+ echo "Environment variable HOSTNAME=$HOSTNAME"
+ echo "This host is unknown to me. I don't know what to do. :("
+fi

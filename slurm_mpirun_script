@@ -1,0 +1,68 @@
+#!/bin/bash
+# slurm_mpirun_script (C) 2013 Wolfgang Tichy
+# needed for submitjob
+
+# Replace some parts of $MPIRUN and $MPIBOOT with the local env vars here:
+##replace string $PBS_NODEFILE with content of env var $PBS_NODEFILE
+#MPIBOOT=${MPIBOOT/\$PBS_NODEFILE/$PBS_NODEFILE}
+#MPIRUN=${MPIRUN/\$PBS_NODEFILE/$PBS_NODEFILE}
+#MPIHALT=${MPIHALT/\$PBS_NODEFILE/$PBS_NODEFILE}
+
+# tell me what's happening:
+echo "======================================================================"
+echo $submitjob
+echo "----------------------------------------------------------------------"
+echo "nodes = $nodes"
+echo "ppn = $ppn"
+echo "procs = $procs"
+echo "memory = $memory"
+echo "walltime = $walltime"
+echo "queue = $queue"
+echo "constraint = $constraint"
+echo "njobs = $njobs"
+echo "jobname = $jobname"
+echo "command = $command"
+echo "parfile = $parfile"
+echo
+echo "MPIBOOT = $MPIBOOT"
+echo "MPIRUN = $MPIRUN"
+echo "MPIHALT = $MPIHALT"
+echo
+echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
+module list
+echo "Important for Intel MPI:"
+echo "MPIR_CVAR_CH4_OFI_TAG_BITS = $MPIR_CVAR_CH4_OFI_TAG_BITS"
+echo "MPIR_CVAR_CH4_OFI_RANK_BITS = $MPIR_CVAR_CH4_OFI_RANK_BITS"
+echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
+echo The master node of this job is `hostname`
+echo The submision directory is `echo $SLURM_SUBMIT_DIR`
+echo The node list is $SLURM_NODELIST
+echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
+#echo This job runs on the following nodes:
+#echo `cat $PBS_NODEFILE`
+#echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
+
+## make PBS go to current dir
+#echo going to $PBS_O_WORKDIR
+#cd $PBS_O_WORKDIR
+
+echo
+echo "Job started on `hostname` at `date`"
+echo "======================================================================"
+
+if [ -n "${MPIBOOT}" ]
+then
+  $MPIBOOT
+fi
+
+time $MPIRUN
+
+if [ -n "${MPIHALT}" ]
+then
+  $MPIHALT
+fi
+
+echo "======================================================================"
+echo "Job Ended at `date`"
+echo
