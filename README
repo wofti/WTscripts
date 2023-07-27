@@ -1,0 +1,16 @@
+This repo contains a collectioon of useful scripts.
+---------------------------------------------------
+
+add-key.py : add keys to ssh-agent
+----------
+# help:
+add-key.py -h
+
+# usage:
+eval `add-key.py ~/.ssh/id_rsa_MK`
+
+
+submitjob : put job into queue on various supercomputers
+---------
+# help:
+submitjob
