@@ -1040,13 +1040,13 @@ then
  while [ $i -le $njobs ];
  do
    QSUB="sbatch -t $walltime \
-                --nodes=$nodes --exclusive \
+                --nodes=$nodes \
                 --ntasks=$procs \
                 --cpus-per-task=$OMP_NUM_THREADS \
-                --mem=0 \
                 -J $jobname \
                 -p $queue \
                 -o $parfile.o%J"
+                #--exclusive \
                 #-A $account"
    if [ $LASTJOBID = ThereIsNoJobToDependOn ];
    then
