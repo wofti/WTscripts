@@ -956,6 +956,130 @@ then
 
 
 ##############
+# for ANVIL: #
+##############
+elif [[ $HOSTNAME =~ anvil.rcac.purdue.edu ]]
+then
+
+ echo "USAGE:"
+ echo "submitjob nodes ppn walltime queue njobs jobname command [parfile]"
+ echo "           |    ppn=128       |     |"
+ echo "           |                  |    njobs=1,2,3,...:DependOnID"
+ echo "       nodes=1,2,..;serial   queue=wholenode,wide,shared,debug"
+
+ export mode=$1
+ export nodes=$1
+ if [ $mode = serial ]
+ then
+   export nodes=1
+ fi
+ export ppn=$2
+ export memory=""
+ export walltime=$3
+ export queue=$4
+ #export constraint=$5
+ export njobs=`echo $5 | awk --field-separator ':' '{ print $1 }'`
+ export DependOnID=`echo $6 | awk --field-separator ':' '{ print $2 }'`
+ # export account=$6
+ export account="dummyaccount"
+ export jobname=$6
+ export command=$7
+ export parfile=$8
+
+ if [ -z "${parfile}" ]
+ then
+   export parfile=$jobname
+ fi
+
+ let procs=nodes*ppn
+ export procs
+
+ # set tpn=threads/node
+ tpn=128
+
+ # compute OMP_NUM_THREADS for OpenMP
+ let OMP_NUM_THREADS=tpn/ppn
+ export OMP_NUM_THREADS
+
+ if [ $mode = serial ]
+ then
+   export MPIRUN="$command $parfile"
+ else
+   # export MPIRUN="mpirun -np $procs $command $parfile"
+   export MPIRUN="prun $command $parfile"
+ fi
+
+ # these two can be used to have more MPI tags with Intel's MPI
+ # sum of TAG_BITS and RANK_BITS has to be 39, e.g. 30+9:
+ export MPIR_CVAR_CH4_OFI_TAG_BITS
+ export MPIR_CVAR_CH4_OFI_RANK_BITS
+
+ echo "HOSTNAME = $HOSTNAME , i.e. ANVIL"
+ echo "nodes = $nodes"
+ echo "ppn = $ppn"
+ echo "procs = $procs"
+ echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
+ echo "walltime = $walltime"
+ echo "queue = $queue"
+ #echo "constraint = $constraint"
+ echo "njobs = $njobs"
+ echo "account = $account"
+ echo "jobname = $jobname"
+ echo "command = $command"
+ echo "parfile = $parfile"
+ echo
+ echo "MPIRUN = $MPIRUN"
+
+ if [ -z "${DependOnID}" ]
+ then
+   LASTJOBID=ThereIsNoJobToDependOn
+ else
+   LASTJOBID=$DependOnID
+ fi
+ i=1
+ while [ $i -le $njobs ];
+ do
+   QSUB="sbatch -t $walltime \
+                --nodes=$nodes --exclusive \
+                --ntasks=$procs \
+                --cpus-per-task=$OMP_NUM_THREADS \
+                --mem=0 \
+                -J $jobname \
+                -p $queue \
+                -o $parfile.o%J"
+                #-A $account"
+   if [ $LASTJOBID = ThereIsNoJobToDependOn ];
+   then
+     QSUB2=""
+   else
+     QSUB2="      -d afterany:$LASTJOBID"
+   fi
+   QSUB="$QSUB$QSUB2"
+
+   if [ -z "${constraint}" ]
+   then
+     QSUB2=""
+   else
+     QSUB2="      -C $constraint"
+   fi
+   QSUB="$QSUB$QSUB2"
+
+   QSUB="$QSUB \
+         $HOME/bin/slurm_mpirun_script"
+   echo
+   echo "calling sbatch:"
+   echo $QSUB
+   # execute qsub and save output also in $jobname.last-sbatch
+   $QSUB | tee $jobname.last-sbatch
+   LASTJOBID=`tail -n1 $jobname.last-sbatch | awk '{ print $NF }'`
+
+   let i=i+1
+ done    # end of while loop
+
+# End of ANVIL
+
+
+##############
 # for FERMI: #
 ##############
 elif [[ $HOSTNAME =~ fen0 ]]
