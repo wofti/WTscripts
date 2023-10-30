@@ -1006,7 +1006,7 @@ then
    export MPIRUN="$command $parfile"
  else
    # export MPIRUN="mpirun -np $procs $command $parfile"
-   export MPIRUN="prun $command $parfile"
+   export MPIRUN="mpirun -np $SLURM_NTASKS $command $parfile"
  fi
 
  # these two can be used to have more MPI tags with Intel's MPI
