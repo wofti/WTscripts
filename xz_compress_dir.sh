@@ -10,8 +10,7 @@ if [ -e "${dir%/}.txz" ]; then
 else
   if [ -d "${dir%/}" ]; then
     echo "moving files to compressed archive: ${dir%/}.txz"
-    # NOTE: --remove-files deletes files incrementally while taring
-    time XZ_OPT=-9 tar cJf ${dir%/}.txz ${dir%/} --remove-files
+    time XZ_OPT=-9 tar cJf ${dir%/}.txz ${dir%/} && rm -rf $dir
   else
     echo "no directory: ${dir%/}"
   fi
