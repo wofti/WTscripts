@@ -87,6 +87,14 @@ else:
             out = glob.glob('/tmp/ssh-*/agent.' + str(pid-1))
         if len(out)==0:
             out = glob.glob('/tmp/ssh-*/agent.*')
+        if len(out)==0:
+            err = 'could not find any file in /tmp with socket for ssh-agent'
+            print('echo ERROR:', err, ';')
+            print('echo ;')
+            print('echo HINT: maybe the env var SSH_AUTH_SOCK should be passed on to this shell ;')
+            print('echo ;')
+            raise Exception(err)
+        # out has something, so use it to get sock:
         sock = out[0]
         com = 'SSH_AUTH_SOCK=' + sock +'; export SSH_AUTH_SOCK;' 
         print(com)
