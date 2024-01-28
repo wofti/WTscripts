@@ -99,7 +99,8 @@ else:
         com = 'SSH_AUTH_SOCK=' + sock +'; export SSH_AUTH_SOCK;' 
         print(com)
     else:
-        print('echo Connecting to ssh-agent via SSH_AUTH_SOCK;')
+        print('echo Connecting to ssh-agent via existing SSH_AUTH_SOCK;')
+        print('echo SSH_AUTH_SOCK=$SSH_AUTH_SOCK;')
         com = 'SSH_AUTH_SOCK=' + os.environ.get('SSH_AUTH_SOCK') +';'
         print(com)
 
