@@ -65,11 +65,20 @@ def find_sshagent(sshagent):
             # print(line)
     return pid, ppid
 
-# get pid
-pid, ppid = find_sshagent(sshagent)
+# try to find ssh socket file
+def find_ssh_auth_socket_file(pid, ppid):
+    out = glob.glob('/tmp/ssh-*/agent.' + str(ppid))
+    if len(out)==0:
+        out = glob.glob('/tmp/ssh-*/agent.' + str(pid-1))
+    if len(out)==0:
+        out = glob.glob('/tmp/ssh-*/agent.*')
+    if len(out)==0:
+        return None
+    else:
+        return out[0]
 
-if pid == -1:
-    print('echo Started new', sshagent, ';')
+# start a new sshagent
+def start_new_sshagent(args):
     if args.life == None:
         os.system(sshagent + ' -t 172800')
     else:
@@ -77,32 +86,40 @@ if pid == -1:
             os.system(sshagent)
         else:
             os.system(sshagent + ' -t ' + args.life)
+
+
+# get pid
+pid, ppid = find_sshagent(sshagent)
+
+# if there is an agent, can we find its socket file?
+if pid != -1:
+    # check if SSH_AUTH_SOCK is set and if the file exists
+    sock = os.environ.get('SSH_AUTH_SOCK')
+    if sock == None:
+        use_existing_sock = False
+    else:
+        use_existing_sock = True
+        if not os.path.exists(sock):
+            use_existing_sock = False
+    if use_existing_sock == False:
+        sock = find_ssh_auth_socket_file(pid, ppid)
+    if sock == None:
+        pid = -1 # signal that we need a new agent
+
+# if there is no usable agent start a new one
+if pid == -1:
+    print('echo Started new', sshagent, ';')
+    start_new_sshagent(args)
 else:
-    if os.environ.get('SSH_AUTH_SOCK') == None:
+    if use_existing_sock == True:
+        print('echo Connecting to ssh-agent via existing SSH_AUTH_SOCK;')
+        print('echo SSH_AUTH_SOCK=' + sock + ';')
+    else:
         print('echo Connecting to ssh-agent with PID', pid, ';')
         com = 'SSH_AGENT_PID=' + str(pid) +'; export SSH_AGENT_PID;'
         print(com)
-        out = glob.glob('/tmp/ssh-*/agent.' + str(ppid))
-        if len(out)==0:
-            out = glob.glob('/tmp/ssh-*/agent.' + str(pid-1))
-        if len(out)==0:
-            out = glob.glob('/tmp/ssh-*/agent.*')
-        if len(out)==0:
-            err = 'could not find any file in /tmp with socket for ssh-agent'
-            print('echo ERROR:', err, ';')
-            print('echo ;')
-            print('echo HINT: maybe the env var SSH_AUTH_SOCK should be passed on to this shell ;')
-            print('echo ;')
-            raise Exception(err)
-        # out has something, so use it to get sock:
-        sock = out[0]
-        com = 'SSH_AUTH_SOCK=' + sock +'; export SSH_AUTH_SOCK;' 
-        print(com)
-    else:
-        print('echo Connecting to ssh-agent via existing SSH_AUTH_SOCK;')
-        print('echo SSH_AUTH_SOCK=$SSH_AUTH_SOCK;')
-        com = 'SSH_AUTH_SOCK=' + os.environ.get('SSH_AUTH_SOCK') +';'
-        print(com)
+    com = 'SSH_AUTH_SOCK=' + sock +'; export SSH_AUTH_SOCK;'
+    print(com)
 
 # add key to sshagent
 com = 'ssh-add ' + keyfile + ';'
