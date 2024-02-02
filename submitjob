@@ -979,7 +979,7 @@ then
  export queue=$4
  #export constraint=$5
  export njobs=`echo $5 | awk --field-separator ':' '{ print $1 }'`
- export DependOnID=`echo $6 | awk --field-separator ':' '{ print $2 }'`
+ export DependOnID=`echo $5 | awk --field-separator ':' '{ print $2 }'`
  # export account=$6
  export account="dummyaccount"
  export jobname=$6
