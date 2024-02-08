@@ -32,10 +32,10 @@ echo "OMP_NUM_THREADS = $OMP_NUM_THREADS"
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
 module list
 echo "Important for Intel MPI:"
-echo "MPIR_CVAR_CH4_OFI_TAG_BITS = $MPIR_CVAR_CH4_OFI_TAG_BITS"
-echo "MPIR_CVAR_CH4_OFI_RANK_BITS = $MPIR_CVAR_CH4_OFI_RANK_BITS"
+echo "MPIR_CVAR_CH4_OFI_TAG_BITS=$MPIR_CVAR_CH4_OFI_TAG_BITS"
+echo "MPIR_CVAR_CH4_OFI_RANK_BITS=$MPIR_CVAR_CH4_OFI_RANK_BITS"
 echo "Important for OpenMPI:"
-echo "OMPI_MCA_mpi_preconnect_all = $OMPI_MCA_mpi_preconnect_all"
+echo "OMPI_MCA_mpi_preconnect_all=$OMPI_MCA_mpi_preconnect_all"
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
 echo The master node of this job is `hostname`
 echo The submision directory is `echo $SLURM_SUBMIT_DIR`
