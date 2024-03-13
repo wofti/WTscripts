@@ -873,6 +873,12 @@ then
  fi
  # there should be more constraints...
 
+ # if tpn is too low just set it to ppn
+ if [ "$tpn" -lt "$ppn" ]
+ then
+   tpn=ppn
+ fi
+
  # compute OMP_NUM_THREADS for OpenMP
  let OMP_NUM_THREADS=tpn/ppn
  export OMP_NUM_THREADS
