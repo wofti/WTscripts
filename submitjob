@@ -873,6 +873,12 @@ then
  fi
  # there should be more constraints...
 
+ # if tpn is too low just set it to ppn
+ if [ "$tpn" -lt "$ppn" ]
+ then
+   tpn=ppn
+ fi
+
  # compute OMP_NUM_THREADS for OpenMP
  let OMP_NUM_THREADS=tpn/ppn
  export OMP_NUM_THREADS
@@ -889,6 +895,10 @@ then
  # sum of TAG_BITS and RANK_BITS has to be 39, e.g. 30+9:
  export MPIR_CVAR_CH4_OFI_TAG_BITS
  export MPIR_CVAR_CH4_OFI_RANK_BITS
+
+ # Make OpenMPI establish all connections during the initialization, so if
+ # there is any connectivity issue you will see it from the start.
+ export OMPI_MCA_mpi_preconnect_all
 
  echo "HOSTNAME = $HOSTNAME , i.e. KOKO"
  echo "nodes = $nodes"
@@ -979,7 +989,7 @@ then
  export queue=$4
  #export constraint=$5
  export njobs=`echo $5 | awk --field-separator ':' '{ print $1 }'`
- export DependOnID=`echo $6 | awk --field-separator ':' '{ print $2 }'`
+ export DependOnID=`echo $5 | awk --field-separator ':' '{ print $2 }'`
  # export account=$6
  export account="dummyaccount"
  export jobname=$6
@@ -1006,7 +1016,8 @@ then
    export MPIRUN="$command $parfile"
  else
    # export MPIRUN="mpirun -np $procs $command $parfile"
-   export MPIRUN="srun -n $procs $command $parfile"
+   # export MPIRUN="srun -n $procs $command $parfile"
+   export MPIRUN="mpirun -np $procs $command $parfile"
  fi
 
  # these two can be used to have more MPI tags with Intel's MPI

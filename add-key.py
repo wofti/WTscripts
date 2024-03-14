@@ -33,7 +33,7 @@ parser = argparse.ArgumentParser(description=
 parser.add_argument('-t', metavar='LIFE', dest='life',
     help='lifetime of key in seconds, 0 means forever, default is 172800')
 parser.add_argument('key', metavar='KEYFILE', nargs='?',
-    help='name of ssh-key file')
+    help='name of ssh-key file, or -')
 
 args = parser.parse_args()
 if args.key == None:
@@ -122,5 +122,6 @@ else:
     print(com)
 
 # add key to sshagent
-com = 'ssh-add ' + keyfile + ';'
-print(com)
+if keyfile != '-':
+    com = 'ssh-add ' + keyfile + ';'
+    print(com)
