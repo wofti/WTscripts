@@ -531,11 +531,14 @@ for ijk in range(len(dat)):
     dist_ijk0 = dist
     ijk0 = ijk
 
+x = dat[ijk0][0]
+y = dat[ijk0][1]
+z = dat[ijk0][2]
 #print(data)
 #print('blocks =', blocks)
 #print('# nx ny nz =', nx,ny,nz)
-print('# point x,y,z closest to x0,y0,z0 in',filename)
-print('# x0 y0 z0 =',x0,y0,z0)
+print('#',filename)
+print('# point closest to: x0 y0 z0 =',x0,y0,z0, '  is: x y z =',x,y,z)
 print('# time =', time)
 print('# x y z value')
 for ent in dat[ijk0]:
