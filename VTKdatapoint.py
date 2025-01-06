@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(description=
 parser.add_argument('-x', metavar='x0', dest='x0', help='x-coord')
 parser.add_argument('-y', metavar='y0', dest='y0', help='y-coord')
 parser.add_argument('-z', metavar='z0', dest='z0', help='z-coord')
-parser.add_argument('file', metavar='FILE', nargs='?', help='name of VTK file')
+parser.add_argument('file', metavar='FILE', help='name of VTK file')
 
 args = parser.parse_args()
 filename = args.file
