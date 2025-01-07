@@ -6,9 +6,9 @@ import argparse
 
 # use python's arg parser
 parser = argparse.ArgumentParser(description=
-    '''Find the distance b''',
+    '''Find coordinate distance from files containing x,y,z positions''',
     epilog='''Example:
-    CoordDist.py -c1 2:3:4 -c2 2:3:4 file1 file2''')
+    CoordDist.py -c1 3:4:5 -c2 3:4:5 file1 file2''')
 parser.add_argument('-ct', metavar='TCOL', dest='ct',
     help='column with time for 1st object')
 parser.add_argument('-c1', metavar='XCOL1:YCOL1:ZCOL1', dest='c1',
@@ -33,7 +33,7 @@ if args.ct == None:
 else:
     ct = int(args.ct)
 if args.c1 == None:
-    c1 = '2:3:4'
+    c1 = '3:4:5'
 else:
     c1 = str(args.c1)
 if args.c2 == None:
