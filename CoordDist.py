@@ -61,7 +61,7 @@ dat1 = np.loadtxt(filename1)
 dat2 = np.loadtxt(filename2)
 
 # compute and print distances
-print('# time distance')
+print('# time coord_dist')
 for i in range(len(dat1)):
     x1 = dat1[i][x1i]
     y1 = dat1[i][y1i]
