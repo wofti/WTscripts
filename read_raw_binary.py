@@ -23,7 +23,8 @@ import argparse
 
 # use pythons arg parser
 parser = argparse.ArgumentParser(description=
-    '''Print header and some content of a binary data file''',
+    '''Print header and some content of a binary data file.
+       Also consider: xxd file''',
     epilog='''Example:
     read_raw_binary.py -c 20 bamo.00685_320/ID_level_1_proc_88.dat''')
 parser.add_argument('-c', metavar='COLUMNS', dest='cols',
@@ -38,6 +39,8 @@ parser.add_argument('--nbhead', metavar='NBHEAD', dest='nbhead',
         default=3, help="print NBHEAD lines from start of binary data ")
 parser.add_argument('--nbtail', metavar='NBTAIL', dest='nbtail',
         default=2, help="print NBTAIL lines of end of binary data")
+parser.add_argument('--nbtailoff', metavar='NBTAILOFF', dest='nbtailoff',
+        default=0, help="number of extra bytes after binary data")
 
 parser.add_argument('file', help='filename')
 
@@ -72,7 +75,7 @@ def is_text(line):
   return istext
 
 # load data from e.g. a bam vtk file
-def load_data(filename, cols, byteorder, format, nbhead, nbtail):
+def load_data(filename, cols, byteorder, format, nbhead, nbtail, nbtailoff):
   size = struct.calcsize(format)
   with open(filename, 'rb') as f:
     # print all text header lines
@@ -98,7 +101,7 @@ def load_data(filename, cols, byteorder, format, nbhead, nbtail):
       print()
     print('# ...')
     # read nbtail lines from before the end:
-    f.seek(-ndata*size*nbtail, 2)  # the last 2 means seek from end of file
+    f.seek(-(ndata*size*nbtail+nbtailoff), 2) #the last 2 means seek from end of file
     for i in range(nbtail):
       vdata = read_raw_binary(f, ndata, byteorder, format)
       for v in vdata: print('%.16g' % v, end=' ')
@@ -118,11 +121,13 @@ byteorder = args.byteorder
 format = args.format
 nbhead = int(args.nbhead)
 nbtail = int(args.nbtail)
+nbtailoff = int(args.nbtailoff)
+
 
 # load and print data
-load_data(file, cols, byteorder, format, nbhead, nbtail)
+load_data(file, cols, byteorder, format, nbhead, nbtail, nbtailoff)
 
 #load_data('bamo.00685_320/ID_level_1_proc_88.dat',
-#          int(args.cols), args.byteorder, format, nbhead, nbtail)
+#          int(args.cols), args.byteorder, format, nbhead, nbtail, nbtailoff)
 #load_data('BAMSLy_m1.35o.00685_320/ID_level_1_proc_88.dat',
-#          int(args.cols), args.byteorder, format, nbhead, nbtail)
+#          int(args.cols), args.byteorder, format, nbhead, nbtail, nbtailoff)
