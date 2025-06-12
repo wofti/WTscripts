@@ -24,7 +24,7 @@ import argparse
 # use pythons arg parser
 parser = argparse.ArgumentParser(description=
     '''Print header and some content of a binary data file.
-       Also consider: xxd file''',
+       BUT first use: xxd file''',
     epilog='''Example:
     read_raw_binary.py -c 20 bamo.00685_320/ID_level_1_proc_88.dat''')
 parser.add_argument('-c', metavar='COLUMNS', dest='cols',
