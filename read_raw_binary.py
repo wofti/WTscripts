@@ -39,8 +39,8 @@ parser.add_argument('-r', metavar='ROWS', dest='rows',
         default=3, help="number of binary rows we print")
 parser.add_argument('--roff', metavar='ROFFSET', dest='roff',
         default=0, help="first binary row printed (negative if from data end)")
-parser.add_argument('--tailbytes', metavar='TAILBYTES', dest='tailbytes',
-        default=0, help="number of extra bytes after binary data")
+parser.add_argument('--byteoff', metavar='BYTEOFF', dest='byteoff',
+        default=0, help="extra byte offset for printing")
 
 parser.add_argument('file', help='filename')
 
@@ -75,7 +75,7 @@ def is_text(line):
   return istext
 
 # load data from e.g. a bam vtk file
-def load_data(filename, cols, byteorder, format, rows, roff, tailbytes):
+def load_data(filename, cols, byteorder, format, rows, roff, byteoff):
   size = struct.calcsize(format)
   with open(filename, 'rb') as f:
     # print all text header lines
@@ -97,9 +97,9 @@ def load_data(filename, cols, byteorder, format, rows, roff, tailbytes):
     # read rows lines of bin data:
     #print('roff =', roff)
     if roff >= 0:
-      f.seek(ndata*size*roff, 1) #the 1 means seek from current position
+      f.seek(ndata*size*roff+byteoff, 1) #the 1 means seek from current position
     else:
-      f.seek(ndata*size*roff-tailbytes, 2) #the 2 means seek from end of file
+      f.seek(ndata*size*roff+byteoff, 2) #the 2 means seek from end of file
     pos2 = f.tell()
     if pos2 != pos:
       print('# ...')
@@ -111,7 +111,7 @@ def load_data(filename, cols, byteorder, format, rows, roff, tailbytes):
       print()
     if roff >=0 or rows < -roff:
       print('# ...')
-    f.seek(-(tailbytes), 2) #the 2 means seek from end of file
+    f.seek(byteoff, 2) #the 2 means seek from end of file
     pos = f.tell()
     print('############### binary data ends at pos =', pos,
           '###############')
@@ -127,13 +127,13 @@ byteorder = args.byteorder
 format = args.format
 rows = int(args.rows)
 roff = int(args.roff)
-tailbytes = int(args.tailbytes)
+byteoff = int(args.byteoff)
 
 
 # load and print data
-load_data(file, cols, byteorder, format, rows, roff, tailbytes)
+load_data(file, cols, byteorder, format, rows, roff, byteoff)
 
 #load_data('bamo.00685_320/ID_level_1_proc_88.dat',
-#          int(args.cols), args.byteorder, format, rows, roff, tailbytes)
+#          int(args.cols), args.byteorder, format, rows, roff, byteoff)
 #load_data('BAMSLy_m1.35o.00685_320/ID_level_1_proc_88.dat',
-#          int(args.cols), args.byteorder, format, rows, roff, tailbytes)
+#          int(args.cols), args.byteorder, format, rows, roff, byteoff)
