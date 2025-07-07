@@ -1,0 +1,213 @@
+/* (C) Wolfgang Tichy
+   compute the frequencies in a time series data set */
+
+/*
+gcc FFT_Spectrum.c -o FFT_Spectrum -lm -lfftw3
+./FFT_Spectrum -d 0.0947916666666659 -f 0 -n 10000 GRHD_rho0_pt0.t freq.txt ; tgraph.py -m -c 1:4 freq.txt
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <limits.h>
+#include <string.h>
+//#include <complex.h>
+#include <fftw3.h>
+
+
+#define STRLEN 262144
+#define NDATAMAX 262144
+
+
+int main(int argc, char* argv[])
+{
+  char str[STRLEN];
+  int i, col, first,nlines,last, linenum, ndata;
+  double dt;
+  double data[NDATAMAX];
+  int infile_pos;
+  FILE *in, *out;
+  fftw_complex *co;
+  fftw_plan p_r2c, p_c2r;
+
+  if(argc < 2)
+  {
+    printf("Usage:\n"
+           "%s [-c Data-col.] [-d dt] [-f line0] [-n nlines] "
+           "<infile> <outfile>\n\n", argv[0]);
+    printf("infile:  File with input time series\n");
+    printf("outfile: Output file with frequencies\n");
+    printf("\n");
+    printf("Examples:\n");
+    printf("%s -c 2 -d 0.1 D.t freq.txt; tgraph.py -c 1:4 freq.txt\n\n", argv[0]);
+    exit(0);
+  }
+
+  /* default options */
+  col = 2;
+  dt  = 1.;
+  first = 0;
+  last = INT_MAX;
+  nlines = -1; /* means arg not specified */
+
+  /* parse command line options, which start with - */
+  for(i=1; (i<argc)&&(argv[i][0] == '-'); i++)
+  {
+    char *astr = argv[i];
+
+    if( (strcmp(astr+1,"c")==0) )
+    {
+      if(i>=argc-1) 
+      {
+        printf("no col after -c\n");
+        return -1;
+      }
+      col = atoi(argv[i+1]);
+      i++;
+    }
+    else if( (strcmp(astr+1,"d")==0) )
+    {
+      if(i>=argc-1) 
+      {
+        printf("no dt after -d\n");
+        return -1;
+      }
+      dt = atof(argv[i+1]);
+      i++;
+    }
+    else if( (strcmp(astr+1,"f")==0) )
+    {
+      if(i>=argc-1) 
+      {
+        printf("no 1st line after -f\n");
+        return -1;
+      }
+      first = atoi(argv[i+1]);
+      i++;
+    }
+    else if( (strcmp(astr+1,"n")==0) )
+    {
+      if(i>=argc-1) 
+      {
+        printf("no number of line after -n\n");
+        return -1;
+      }
+      nlines = atoi(argv[i+1]);
+      i++;
+    }
+    else
+    {
+      printf("unknown argument %s\n", astr);
+      return -1;
+    }
+  }
+  if(nlines > 0) last = first + nlines;
+  infile_pos = i;
+  if(infile_pos > argc-2)
+  {
+    //printf("infile_pos=%d argc=%d\n", infile_pos, argc);
+    printf("the two last args need to be filenames\n");
+    return -1;
+  }
+
+  /* open file in */
+  printf("# input file: %s",argv[infile_pos]);
+  in=fopen(argv[i],"r");
+  if(in==NULL)
+  {
+   printf(" not found.\n");
+   return -2;
+  }
+  printf("\n");
+
+  /* read infile */
+  linenum = ndata = 0;
+  while(fgets(str, STRLEN, in)!=NULL)
+  {
+    int c;
+    char *tok;
+    double dat;
+
+    /* ignore comments */
+    if(str[0]=='#') continue;
+
+    /* ignore all outside first and last lines */
+    if(linenum<first || linenum>last) goto NextLine;
+
+    /* go to column col in string str */
+    c = 0;
+    for(tok=strtok(str, " \t\n"); tok!=NULL; tok=strtok(NULL, " \t\n"))
+    {
+      //printf("tok=%s\n", tok);
+      if(c==col-1)
+      { 
+        dat = atof(tok);
+        break;
+      }
+      c++;
+    }
+
+    /* add dat to FFT array */
+    data[ndata] = dat;
+    ndata++;
+    if(ndata>=NDATAMAX) { printf("NDATAMAX is too small!\n"); return -3; }
+
+    /* inc linenum counter */
+    NextLine:
+    linenum++;
+  }
+  fclose(in);
+  printf("# read %d lines from %s\n", ndata, argv[infile_pos]);
+
+  /* compute FFT if data */
+
+  /* get mem for co */
+  co = fftw_malloc(sizeof(fftw_complex) * ndata);
+  //for(i=0; i<ndata; i++)
+  //{
+  //  co[i][0] = 42.0;
+  //  co[i][1] = 43.0;
+  //}
+
+  /* make plans */
+  p_r2c = fftw_plan_dft_r2c_1d(ndata, data, co, FFTW_ESTIMATE);
+  p_c2r = fftw_plan_dft_c2r_1d(ndata, co, data, FFTW_ESTIMATE);
+
+  /* do FFT of data */
+  fftw_execute(p_r2c);
+
+  for(i=0; i<ndata/2+1; i++)
+  {
+    co[i][0] /= ndata; /* accesses real part of co[i] */
+    co[i][1] /= ndata; /* accesses imaginary part of co[i] */
+    //co[i]/= ndata; /* do this if complex.h is included BEFORE fftw3.h */
+  }
+
+  fftw_destroy_plan(p_r2c);
+  fftw_destroy_plan(p_c2r);
+
+
+  /* open file out */
+  printf("# output file: %s",argv[infile_pos+1]);
+  out=fopen(argv[infile_pos+1],"wb");
+  if(out==NULL)
+  {
+   printf(" could not be opened.\n");
+   return -2;
+  }
+  printf("\n");
+
+  fprintf(out, "# frequency  Re_co  Im_co  |co|\n");
+
+  for(i=0; i<ndata/2+1; i++)
+  {
+    double re = co[i][0];
+    double im = co[i][1];
+    double f_i = i / (ndata*dt);
+    //fprintf(out, "%d %g %g %g # %g\n", i, re, im, sqrt(re*re + im*im), data[i]);
+    fprintf(out, "%g  %g  %g  %g\n", f_i, re, im, sqrt(re*re + im*im));
+  }
+  fclose(out);
+
+  fftw_free(co);
+}
