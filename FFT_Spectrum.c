@@ -1,9 +1,15 @@
-/* (C) Wolfgang Tichy
-   compute the frequencies in a time series data set */
+/* (C) Wolfgang Tichy 2025
 
+   Compute the coeffs co[k] for each frequency f_k = k/(N*dt) in a time
+   series data set.
+   r2c DFTs are always FFTW_FORWARD and c2r DFTs are always FFTW_BACKWARD.
+   Thus:
+   co[k]   = [ \sum_{j=0}^{N-1} data[j] exp(-i*2\pi*(j/N)*k) ] / N
+   data[k] = \sum_{j=0}^{N-1} co[j] exp(i*2\pi*(j/N)*k)
+*/
 /*
 gcc FFT_Spectrum.c -o FFT_Spectrum -lm -lfftw3
-./FFT_Spectrum -d 0.0947916666666659 -f 0 -n 10000 GRHD_rho0_pt0.t freq.txt ; tgraph.py -m -c 1:4 freq.txt
+./FFT_Spectrum -d 0.0947916666666659 -f 0 -n 10000 GRHD_rho0_pt0.t spec.txt ; tgraph.py -m spec.txt
 */
 
 #include <stdio.h>
@@ -14,9 +20,15 @@ gcc FFT_Spectrum.c -o FFT_Spectrum -lm -lfftw3
 //#include <complex.h>
 #include <fftw3.h>
 
+#define PI  3.14159265358979323846264338327950
+#define PIh 1.57079632679489661923132169163975
+#define PIq 0.785398163397448309615660845819876
 
 #define STRLEN 262144
 #define NDATAMAX 262144
+
+/* funcs */
+double Arg(double x, double y);
 
 
 int main(int argc, char* argv[])
@@ -39,7 +51,7 @@ int main(int argc, char* argv[])
     printf("outfile: Output file with frequencies\n");
     printf("\n");
     printf("Examples:\n");
-    printf("%s -c 2 -d 0.1 D.t freq.txt; tgraph.py -c 1:4 freq.txt\n\n", argv[0]);
+    printf("%s -c 2 -d 0.1 D.t spec.txt; tgraph.py spec.txt\n\n", argv[0]);
     exit(0);
   }
 
@@ -159,7 +171,7 @@ int main(int argc, char* argv[])
   fclose(in);
   printf("# read %d lines from %s\n", ndata, argv[infile_pos]);
 
-  /* compute FFT if data */
+  /* compute FFT of data */
 
   /* get mem for co */
   co = fftw_malloc(sizeof(fftw_complex) * ndata);
@@ -197,17 +209,41 @@ int main(int argc, char* argv[])
   }
   printf("\n");
 
-  fprintf(out, "# frequency  Re_co  Im_co  |co|\n");
+  fprintf(out, "# frequency  |co|  phase_co  Re_co  Im_co\n");
 
   for(i=0; i<ndata/2+1; i++)
   {
+    double f_i = i / (ndata*dt);
     double re = co[i][0];
     double im = co[i][1];
-    double f_i = i / (ndata*dt);
-    //fprintf(out, "%d %g %g %g # %g\n", i, re, im, sqrt(re*re + im*im), data[i]);
-    fprintf(out, "%g  %g  %g  %g\n", f_i, re, im, sqrt(re*re + im*im));
+    double amp = sqrt(re*re + im*im);
+    double phase = Arg(re, im);
+    fprintf(out, "%g  %g  %g  %g  %g\n", f_i, amp, phase, re, im);
   }
   fclose(out);
 
   fftw_free(co);
+}
+
+
+/* Arg function of z = x + iy : return value in (-PI,PI] */
+double Arg(double x, double y)
+{
+  double arg;
+
+  if(x==0.0)
+  {
+    if(y>0.0)  arg=PIh;
+    else       arg=-PIh;
+    if(y==0.0) arg=0.0;
+  }
+  else if(x<0)
+  {
+    if(y>=0.0)  arg=atan(y/x)+PI;
+    else        arg=atan(y/x)-PI;
+  }
+  else
+    arg=atan(y/x);
+
+  return arg;
 }
