@@ -45,10 +45,14 @@ int main(int argc, char* argv[])
   if(argc < 2)
   {
     printf("Usage:\n"
-           "%s [-c Data-col.] [-d dt] [-f line0] [-n nlines] "
+           "%s [-c Col] [-d dt] [-o lineoffset] [-n nlines] "
            "<infile> <outfile>\n\n", argv[0]);
-    printf("infile:  File with input time series\n");
-    printf("outfile: Output file with frequencies\n");
+    printf("<infile>:   File with input time series\n");
+    printf("<outfile>:  Output file with frequency spectrum\n");
+    printf("Col:        Data-column we read\n");
+    printf("dt:         Time step in infile\n");
+    printf("lineoffset: Skip this many initial lines\n");
+    printf("nlines:     Maximum number of lines to read\n");
     printf("\n");
     printf("Examples:\n");
     printf("%s -c 2 -d 0.1 D.t spec.txt; tgraph.py spec.txt\n\n", argv[0]);
@@ -59,7 +63,7 @@ int main(int argc, char* argv[])
   col = 2;
   dt  = 1.;
   first = 0;
-  last = INT_MAX;
+  last = INT_MAX/2;
   nlines = -1; /* means arg not specified */
 
   /* parse command line options, which start with - */
@@ -87,14 +91,14 @@ int main(int argc, char* argv[])
       dt = atof(argv[i+1]);
       i++;
     }
-    else if( (strcmp(astr+1,"f")==0) )
+    else if( (strcmp(astr+1,"o")==0) )
     {
       if(i>=argc-1) 
       {
-        printf("no 1st line after -f\n");
+        printf("no line offset after -o\n");
         return -1;
       }
-      first = atoi(argv[i+1]);
+      first = atoi(argv[i+1]); /* first line (counting from 0) */
       i++;
     }
     else if( (strcmp(astr+1,"n")==0) )
@@ -104,7 +108,7 @@ int main(int argc, char* argv[])
         printf("no number of line after -n\n");
         return -1;
       }
-      nlines = atoi(argv[i+1]);
+      nlines = atoi(argv[i+1]); /* number of lines */
       i++;
     }
     else
@@ -113,7 +117,7 @@ int main(int argc, char* argv[])
       return -1;
     }
   }
-  if(nlines > 0) last = first + nlines;
+  if(nlines > 0) last = first + nlines; /* last line */
   infile_pos = i;
   if(infile_pos > argc-2)
   {
@@ -144,7 +148,7 @@ int main(int argc, char* argv[])
     if(str[0]=='#') continue;
 
     /* ignore all outside first and last lines */
-    if(linenum<first || linenum>last) goto NextLine;
+    if(linenum<first || linenum>=last) goto NextLine;
 
     /* go to column col in string str */
     c = 0;
@@ -170,6 +174,7 @@ int main(int argc, char* argv[])
   }
   fclose(in);
   printf("# read %d lines from %s\n", ndata, argv[infile_pos]);
+  //for(i=0; i<ndata; i++) printf("%.16g\n", data[i]);
 
   /* compute FFT of data */
 
