@@ -214,6 +214,10 @@ int main(int argc, char* argv[])
   }
   printf("\n");
 
+  fprintf(out, "#");
+  for(i=0; i<argc; i++) fprintf(out, " %s", argv[i]);
+  fprintf(out, "\n");
+  fprintf(out, "# ---------------------------------------\n");
   fprintf(out, "# frequency  |co|  phase_co  Re_co  Im_co\n");
 
   for(i=0; i<ndata/2+1; i++)
