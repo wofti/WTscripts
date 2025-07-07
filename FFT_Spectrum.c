@@ -45,14 +45,14 @@ int main(int argc, char* argv[])
   if(argc < 2)
   {
     printf("Usage:\n"
-           "%s [-c Col] [-d dt] [-o lineoffset] [-n nlines] "
+           "%s [-d dt] [-c Col] [-o lineoffset] [-n nlines] "
            "<infile> <outfile>\n\n", argv[0]);
     printf("<infile>:   File with input time series\n");
     printf("<outfile>:  Output file with frequency spectrum\n");
-    printf("Col:        Data-column we read\n");
     printf("dt:         Time step in infile\n");
-    printf("lineoffset: Skip this many initial lines\n");
-    printf("nlines:     Maximum number of lines to read\n");
+    printf("Col:        Data-column we read (default is 2)\n");
+    printf("lineoffset: Skip this many initial lines (default is 0)\n");
+    printf("nlines:     Maximum number of lines to read (default is all)\n");
     printf("\n");
     printf("Examples:\n");
     printf("%s -c 2 -d 0.1 D.t spec.txt; tgraph.py spec.txt\n\n", argv[0]);
@@ -71,17 +71,7 @@ int main(int argc, char* argv[])
   {
     char *astr = argv[i];
 
-    if( (strcmp(astr+1,"c")==0) )
-    {
-      if(i>=argc-1) 
-      {
-        printf("no col after -c\n");
-        return -1;
-      }
-      col = atoi(argv[i+1]);
-      i++;
-    }
-    else if( (strcmp(astr+1,"d")==0) )
+    if( (strcmp(astr+1,"d")==0) )
     {
       if(i>=argc-1) 
       {
@@ -89,6 +79,16 @@ int main(int argc, char* argv[])
         return -1;
       }
       dt = atof(argv[i+1]);
+      i++;
+    }
+    else if( (strcmp(astr+1,"c")==0) )
+    {
+      if(i>=argc-1) 
+      {
+        printf("no col after -c\n");
+        return -1;
+      }
+      col = atoi(argv[i+1]);
       i++;
     }
     else if( (strcmp(astr+1,"o")==0) )
