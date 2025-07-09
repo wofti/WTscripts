@@ -9,7 +9,7 @@
 */
 /*
 gcc FFT_Spectrum.c -o FFT_Spectrum -lm -lfftw3
-./FFT_Spectrum -d 0.0947916666666659 -f 0 -n 10000 GRHD_rho0_pt0.t spec.txt ; tgraph.py -m spec.txt
+./FFT_Spectrum -d 0.0948 -n 10000 GRHD_rho0_pt0.t spec.f ; tgraph.py -m spec.f
 */
 
 #include <stdio.h>
