@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
     {
       if(i>=argc-1) 
       {
-        printf("no number of line after -n\n");
+        printf("no number of lines after -n\n");
         return -1;
       }
       nlines = atoi(argv[i+1]); /* number of lines */
