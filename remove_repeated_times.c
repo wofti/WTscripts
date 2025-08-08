@@ -3,6 +3,9 @@
    less than or equal to the previous time */
 /* (c) Wolfgang Tichy 2009 */
 
+/* Compile with:
+gcc remove_repeated_times.c -o remove_repeated_times
+*/
 
 #define BUFLEN 134217728
 #define STRLEN 262144
