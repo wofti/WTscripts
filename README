@@ -14,3 +14,19 @@ submitjob : put job into queue on various supercomputers
 ---------
 # help:
 submitjob
+
+
+remove_repeated_times.c : remove repeated times due to checkpoint restart
+-----------------------
+# compile with:
+gcc remove_repeated_times.c -o remove_repeated_times
+# help:
+remove_repeated_times
+
+
+FFT_Spectrum.c : compute Fourier Spectrum of data file
+--------------
+# compile with:
+gcc FFT_Spectrum.c -o FFT_Spectrum -lm -lfftw3
+# help:
+FFT_Spectrum
