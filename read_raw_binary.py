@@ -32,8 +32,7 @@ parser.add_argument('-c', metavar='COLUMNS', dest='cols',
 parser.add_argument('--format', metavar='FORMAT', dest='format',
         default='d', help="'d' for double', 'f' for float")
 parser.add_argument('--byteorder', metavar='BYTEORDER', dest='byteorder',
-        default='=',
-        help="'=' is native, '<' is little, '>' is big endian")
+        default='=', help="'=' is native, '<' is little, '>' is big endian")
 
 parser.add_argument('-r', metavar='ROWS', dest='rows',
         default=10, help="number of binary rows we print")
