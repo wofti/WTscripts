@@ -78,7 +78,7 @@ def load_data(filename, cols, byteorder, format, rows, roff, byteoff):
   size = struct.calcsize(format)
   with open(filename, 'rb') as f:
     # print all text header lines
-    print('############### text header at begining of file ###############')
+    print('########### text header at begining of file ###########')
     while True:
       pos = f.tell()
       # print('S pos =', pos)
@@ -90,8 +90,8 @@ def load_data(filename, cols, byteorder, format, rows, roff, byteoff):
         f.seek(pos) # go back in file f to start of line
         break
     # once we get here, we have read the header and now the data start
-    print('############### binary data starts at pos =', pos,
-          '###############')
+    print('########### binary data starts at pos =', pos,
+          '###########')
     ndata = cols
     # read rows lines of bin data:
     #print('roff =', roff)
@@ -104,8 +104,8 @@ def load_data(filename, cols, byteorder, format, rows, roff, byteoff):
     pos2 = f.tell()
     if pos2 != pos:
       print('# ...')
-      print('############### printing', rows, 'rows from pos =', pos2,
-            '###############')
+      print('########### printing', rows, 'rows from pos =', pos2,
+            '###########')
     for i in range(rows):
       vdata = read_raw_binary(f, ndata, byteorder, format)
       for v in vdata: print('%.16g' % v, end=' ')
@@ -114,10 +114,10 @@ def load_data(filename, cols, byteorder, format, rows, roff, byteoff):
       print('# ...')
     f.seek(byteoff, 2) #the 2 means seek from end of file
     pos = f.tell()
-    print('############### binary data ends at pos =', pos,
-          '###############')
-    print('############### each binary data item has size =', size,
-          '###############')
+    print('########### binary data ends at pos =', pos,
+          '###########')
+    print('########### ASSUMING, each binary data item has size =', size,
+          '###########')
 
 #############################################################################
 
