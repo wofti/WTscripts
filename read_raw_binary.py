@@ -55,7 +55,7 @@ def read_raw_binary(file, ndata, byteorder, format):
   # read data into a byte string
   size = struct.calcsize(format)
   bstr = file.read(size*ndata)
-  # unpack bstr into tuple of C-floats, assuming big-endian (>) byte order
+  # unpack bstr into tuple of C-floats, ordered as in byteorder
   fmt = byteorder + ('%d' % (ndata)) + format
   dtuple = struct.unpack(fmt, bstr)
   ## convert tuple dtu into numpy array
