@@ -99,10 +99,12 @@ def load_data(filename, cols, byteorder, format, rows, roff, byteoff):
       f.seek(ndata*size*roff+byteoff, 1) #the 1 means seek from current position
     else:
       f.seek(ndata*size*roff+byteoff, 2) #the 2 means seek from end of file
+      if rows > -roff:
+        rows = -roff # make sure we do not print past end of file
     pos2 = f.tell()
     if pos2 != pos:
       print('# ...')
-      print('############### printing from pos =', pos2,
+      print('############### printing', rows, 'rows from pos =', pos2,
             '###############')
     for i in range(rows):
       vdata = read_raw_binary(f, ndata, byteorder, format)
