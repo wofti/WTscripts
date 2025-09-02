@@ -65,7 +65,7 @@ def find_sshagent(sshagent):
             # print(line)
     return pid, ppid
 
-# try to find ssh socket file
+# try to find ssh socket file, if pid=-1 do not search in /tmp
 def find_ssh_auth_socket_file(pid, ppid):
     # check /run/user/????/openssh_agent first
     uid = os.getuid()
@@ -74,17 +74,34 @@ def find_ssh_auth_socket_file(pid, ppid):
         use_pid = True
     else:
         use_pid = False
-    # check /tmp/ssh-* if we do not have out yet
-    if len(out)==0:
-        out = glob.glob('/tmp/ssh-*/agent.' + str(ppid))
-    if len(out)==0:
-        out = glob.glob('/tmp/ssh-*/agent.' + str(pid-1))
-    if len(out)==0:
-        out = glob.glob('/tmp/ssh-*/agent.*')
+    if pid >= 0:
+        # check /tmp/ssh-* if we do not have out yet
+        if len(out)==0:
+            out = glob.glob('/tmp/ssh-*/agent.' + str(ppid))
+        if len(out)==0:
+            out = glob.glob('/tmp/ssh-*/agent.' + str(pid-1))
+        if len(out)==0:
+            out = glob.glob('/tmp/ssh-*/agent.*')
     if len(out)==0:
         return None, use_pid
     else:
         return out[0], use_pid
+
+# check if SSH_AUTH_SOCK is set and if the file exists
+# if not search for socket files
+def check_for_existing_socks(pid, ppid):
+    sock = os.environ.get('SSH_AUTH_SOCK')
+    if sock == None:
+        use_existing_sock = False
+    else:
+        use_existing_sock = True
+        if not os.path.exists(sock):
+            use_existing_sock = False
+    if use_existing_sock == True:
+        use_pid = False
+    else:
+        sock, use_pid = find_ssh_auth_socket_file(pid, ppid)
+    return sock, use_existing_sock, use_pid
 
 # start a new sshagent
 def start_new_sshagent(args):
@@ -97,26 +114,22 @@ def start_new_sshagent(args):
             os.system(sshagent + ' -t ' + args.life)
 
 
+###############################################################
+# main starts here
+###############################################################
+
+# check SSH_AUTH_SOCK first, then look for /run/user/????/openssh_agent
+sock, use_existing_sock, use_pid = check_for_existing_socks(-1,-1)
+
 # get pid
 pid, ppid = find_sshagent(sshagent)
 
-# if there is an agent, can we find its socket file?
-if pid != -1:
-    # check if SSH_AUTH_SOCK is set and if the file exists
-    sock = os.environ.get('SSH_AUTH_SOCK')
-    if sock == None:
-        use_existing_sock = False
-    else:
-        use_existing_sock = True
-        if not os.path.exists(sock):
-            use_existing_sock = False
-    if use_existing_sock == False:
-        sock, use_pid = find_ssh_auth_socket_file(pid, ppid)
-    if sock == None:
-        pid = -1 # signal that we need a new agent
+# look again for sock now that we hopefully have pid, ppid
+if use_pid == True:
+    sock, use_existing_sock, use_pid = check_for_existing_socks(pid, ppid)
 
 # if there is no usable agent start a new one
-if pid == -1:
+if sock == None:
     print('echo Started new', sshagent, ';')
     start_new_sshagent(args)
 else:
