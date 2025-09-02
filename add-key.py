@@ -116,6 +116,9 @@ else:
         print('echo SSH_AUTH_SOCK=' + sock + ';')
     else:
         print('echo Connecting to ssh-agent with PID', pid, ';')
+        openssh_agent = '/run/user/'+str(os.getuid())+'/openssh_agent'
+        print('echo Tip: somtimes it is better to first set:', ';')
+        print('echo export SSH_AUTH_SOCK=', openssh_agent, ' ;', sep='')
         com = 'SSH_AGENT_PID=' + str(pid) +'; export SSH_AGENT_PID;'
         print(com)
     com = 'SSH_AUTH_SOCK=' + sock +'; export SSH_AUTH_SOCK;'
