@@ -67,15 +67,24 @@ def find_sshagent(sshagent):
 
 # try to find ssh socket file
 def find_ssh_auth_socket_file(pid, ppid):
-    out = glob.glob('/tmp/ssh-*/agent.' + str(ppid))
+    # check /run/user/????/openssh_agent first
+    uid = os.getuid()
+    out = glob.glob('/run/user/' + str(uid) + '/openssh_agent')
+    if len(out)==0:
+        use_pid = True
+    else:
+        use_pid = False
+    # check /tmp/ssh-* if we do not have out yet
+    if len(out)==0:
+        out = glob.glob('/tmp/ssh-*/agent.' + str(ppid))
     if len(out)==0:
         out = glob.glob('/tmp/ssh-*/agent.' + str(pid-1))
     if len(out)==0:
         out = glob.glob('/tmp/ssh-*/agent.*')
     if len(out)==0:
-        return None
+        return None, use_pid
     else:
-        return out[0]
+        return out[0], use_pid
 
 # start a new sshagent
 def start_new_sshagent(args):
@@ -102,7 +111,7 @@ if pid != -1:
         if not os.path.exists(sock):
             use_existing_sock = False
     if use_existing_sock == False:
-        sock = find_ssh_auth_socket_file(pid, ppid)
+        sock, use_pid = find_ssh_auth_socket_file(pid, ppid)
     if sock == None:
         pid = -1 # signal that we need a new agent
 
@@ -115,9 +124,12 @@ else:
         print('echo Connecting to ssh-agent via existing SSH_AUTH_SOCK;')
         print('echo SSH_AUTH_SOCK=' + sock + ';')
     else:
-        print('echo Connecting to ssh-agent with PID', pid, ';')
-        com = 'SSH_AGENT_PID=' + str(pid) +'; export SSH_AGENT_PID;'
-        print(com)
+        if use_pid == True:
+            print('echo Connecting to ssh-agent with PID', pid, ';')
+            com = 'SSH_AGENT_PID=' + str(pid) +'; export SSH_AGENT_PID;'
+            print(com)
+        else:
+            print('echo Connecting to ssh-agent via', sock, ';')
     com = 'SSH_AUTH_SOCK=' + sock +'; export SSH_AUTH_SOCK;'
     print(com)
 
