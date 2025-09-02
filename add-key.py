@@ -77,6 +77,13 @@ def find_ssh_auth_socket_file(pid, ppid):
     else:
         return out[0]
 
+# print some tips about /run/user/1000/openssh_agent
+def print_tips():
+    openssh_agent = '/run/user/'+str(os.getuid())+'/openssh_agent'
+    print('echo Tip: somtimes it is better to use:', ';')
+    print('echo export SSH_AUTH_SOCK=', openssh_agent, ' ;', sep='')
+    return
+
 # start a new sshagent
 def start_new_sshagent(args):
     if args.life == None:
@@ -110,15 +117,14 @@ if pid != -1:
 if pid == -1:
     print('echo Started new', sshagent, ';')
     start_new_sshagent(args)
+    print_tips()
 else:
     if use_existing_sock == True:
         print('echo Connecting to ssh-agent via existing SSH_AUTH_SOCK;')
         print('echo SSH_AUTH_SOCK=' + sock + ';')
     else:
         print('echo Connecting to ssh-agent with PID', pid, ';')
-        openssh_agent = '/run/user/'+str(os.getuid())+'/openssh_agent'
-        print('echo Tip: somtimes it is better to first set:', ';')
-        print('echo export SSH_AUTH_SOCK=', openssh_agent, ' ;', sep='')
+        print_tips()
         com = 'SSH_AGENT_PID=' + str(pid) +'; export SSH_AGENT_PID;'
         print(com)
     com = 'SSH_AUTH_SOCK=' + sock +'; export SSH_AUTH_SOCK;'
