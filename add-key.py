@@ -92,11 +92,12 @@ def find_ssh_auth_socket_file(pid, ppid):
 # print some tips about /run/user/1000/openssh_agent
 def print_tips():
     # ask systemd what SSH_AUTH_SOCK should be
-    result = subprocess.run(
-             'systemctl --user show-environment | grep SSH_AUTH_SOCK',
-             shell=True, capture_output=True, text=True)
-    systemd_sock = result.stdout.strip()
-    if len(systemd_sock) == 0:
+    try:
+        result = subprocess.check_output(
+                 'systemctl --user show-environment | grep SSH_AUTH_SOCK',
+                 shell=True)
+        systemd_sock = result.decode('latin_1').strip()
+    except:
         systemd_sock='SSH_AUTH_SOCK=/run/user/'+str(os.getuid())+'/openssh_agent'
     print('echo Tip: somtimes it is better to use:', ';')
     print('echo export', systemd_sock, ';')
