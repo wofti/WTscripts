@@ -36,10 +36,6 @@ parser.add_argument('key', metavar='KEYFILE', nargs='?',
     help='name of ssh-key file, or -')
 
 args = parser.parse_args()
-if args.key == None:
-    keyfile = ''
-else:
-    keyfile = args.key
 
 # name of ssh-agent
 sshagent = 'ssh-agent'
@@ -105,13 +101,26 @@ def print_tips():
 
 # start a new sshagent
 def start_new_sshagent(args):
+    os.system(sshagent)
+
+# add key to sshagent
+def ssh_add_key(args):
+    # set life for key
     if args.life == None:
-        os.system(sshagent + ' -t 172800')
+        t_arg = '-t 172800'
     else:
         if args.life == '0' or args.life[0] == '-':
-            os.system(sshagent)
+            t_arg = ''
         else:
-            os.system(sshagent + ' -t ' + args.life)
+            t_arg = '-t ' + args.life
+    # set keyfile
+    if args.key == None:
+        keyfile = ''
+    else:
+        keyfile = args.key
+    if keyfile != '-':
+        com = 'ssh-add ' + t_arg + ' ' + keyfile + ';'
+        print(com)
 
 
 ##################################################
@@ -147,6 +156,4 @@ else:
         print(com)
 
 # add key to sshagent
-if keyfile != '-':
-    com = 'ssh-add ' + keyfile + ';'
-    print(com)
+ssh_add_key(args)
