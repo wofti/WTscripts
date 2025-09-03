@@ -118,6 +118,7 @@ def ssh_add_key(args):
         keyfile = ''
     else:
         keyfile = args.key
+    # call ssh-add unless we gave -
     if keyfile != '-':
         com = 'ssh-add ' + t_arg + ' ' + keyfile + ';'
         print(com)
