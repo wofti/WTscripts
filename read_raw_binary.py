@@ -26,19 +26,19 @@ parser = argparse.ArgumentParser(description=
     '''Print header and some content of a binary data file.
        BUT first use: xxd file''',
     epilog='''Example:
-    read_raw_binary.py -c 20 bamo.00685_320/ID_level_1_proc_88.dat''')
+    read_raw_binary.py -c 3 --format f --roff -10 SLyB/xyz.xy.bin''')
 parser.add_argument('-c', metavar='COLUMNS', dest='cols',
         default=1, help="number of columns in data file")
 parser.add_argument('--format', metavar='FORMAT', dest='format',
         default='d', help="'d' for double', 'f' for float")
-parser.add_argument('--byteorder', metavar='BYTEORDER', dest='byteorder',
+parser.add_argument('--byteorder', metavar='BYTEORD', dest='byteorder',
         default='=', help="'=' is native, '<' is little, '>' is big endian")
 
 parser.add_argument('-r', metavar='ROWS', dest='rows',
         default=10, help="number of binary rows we print")
-parser.add_argument('--roff', metavar='ROFFSET', dest='roff',
+parser.add_argument('--roff', metavar='ROWOFFSET', dest='roff',
         default=0, help="first binary row printed (negative if from data end)")
-parser.add_argument('--byteoff', metavar='BYTEOFF', dest='byteoff',
+parser.add_argument('--byteoff', metavar='BYTEOFFSET', dest='byteoff',
         default=0, help="extra byte offset for printing")
 
 parser.add_argument('file', help='filename')
