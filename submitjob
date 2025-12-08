@@ -1037,9 +1037,11 @@ then
  then
    export MPIRUN="$command $parfile"
  else
-   # export MPIRUN="mpirun -np $procs $command $parfile"
    # export MPIRUN="prun $command $parfile"
-   export MPIRUN="mpirun -np $procs $command $parfile"
+   # export MPIRUN="srun --cpu-bind=cores $command $parfile" # srun crashes
+   # export MPIRUN="mpirun -np $procs $command $parfile" # wrong binding
+   # export MPIRUN="mpirun --bind-to core --map-by core $command $parfile" # crashes
+   export MPIRUN="mpirun $command $parfile"
  fi
 
  # these two can be used to have more MPI tags with Intel's MPI
