@@ -974,7 +974,7 @@ then
  echo "USAGE:"
  echo "submitjob nodes ppn walltime queue constraint njobs jobname command [parfile]"
  echo "           |    ppn=20,64,... |     |         njobs=1,2,3,...:DependOnID"
- echo "           |                  |    constraint=\"\",\"intel\",\"epyc\",\"haswell\",..."
+ echo "           |                  |    constraint=\"\",\"intel\",\"epyc\",\"epyc7702\",..."
  echo "       nodes=1,2,..;serial   queue=longq7,shortq7,micHost,mic,..."
 
  export mode=$1
