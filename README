@@ -1,5 +1,5 @@
-This repo contains a collectioon of useful scripts.
----------------------------------------------------
+This repo contains a collection of useful scripts.
+--------------------------------------------------
 
 add-key.py : add keys to ssh-agent
 ----------
