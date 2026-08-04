@@ -521,7 +521,8 @@ else:
   (dat, time, bl) = load_vtk_STRUCTURED_POINTS_data(filename, timestr)
 
 # find x0,y0,z0
-dist_ijk0 = 1e300
+dist_ijk0 = np.finfo(dat[0][0].dtype).max
+#print('max float =', dist_ijk0)
 for ijk in range(len(dat)):
   x = dat[ijk][0]
   y = dat[ijk][1]
