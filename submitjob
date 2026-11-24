@@ -1015,7 +1015,7 @@ then
  # for all the new constraints
  if [ C$constraint = Cepyc7702 ]
  then
-   tpn=256
+   tpn=128
  fi
  if [ C$constraint = Cepyc7551 ]
  then
@@ -1032,6 +1032,9 @@ then
  # compute OMP_NUM_THREADS for OpenMP
  let OMP_NUM_THREADS=tpn/ppn
  export OMP_NUM_THREADS
+ # try to optimize thread binding
+ export OMP_PLACES=cores
+ export OMP_PROC_BIND=close
 
  if [ $mode = serial ]
  then
@@ -1041,7 +1044,8 @@ then
    # export MPIRUN="srun --cpu-bind=cores $command $parfile" # srun crashes
    # export MPIRUN="mpirun -np $procs $command $parfile" # wrong binding
    # export MPIRUN="mpirun --bind-to core --map-by core $command $parfile" # crashes
-   export MPIRUN="mpirun $command $parfile"
+   # export MPIRUN="mpirun $command $parfile"
+   export MPIRUN="mpirun --map-by socket:PE=$OMP_NUM_THREADS --report-bindings $command $parfile"
  fi
 
  # these two can be used to have more MPI tags with Intel's MPI
